@@ -4,8 +4,8 @@ from config import GEMINI_API_KEY
 # Настройка Gemini
 genai.configure(api_key=GEMINI_API_KEY)
 
-# Используем Gemini 2.0 Flash (бесплатно 1500 запросов/день)
-model = genai.GenerativeModel('gemini-2.0-flash-exp')
+# Используем Gemini Flash Latest (указывает на Gemini 3 Flash - самая новая модель)
+model = genai.GenerativeModel('gemini-flash-latest')
 
 async def generate_schedule(schedule_type: str, date: str = None) -> str:
     """
