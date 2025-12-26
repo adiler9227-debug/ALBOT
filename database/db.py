@@ -161,6 +161,25 @@ async def add_scheduled_post(content: str, publish_time: datetime, photo_id: str
         )
         await db.commit()
 
+async def get_scheduled_posts():
+    """Получить все отложенные посты"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            'SELECT * FROM scheduled_posts WHERE status = "pending" ORDER BY publish_time'
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(row) for row in rows]
+
+async def update_scheduled_post_status(post_id: int, status: str):
+    """Обновить статус отложенного поста"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            'UPDATE scheduled_posts SET status = ? WHERE id = ?',
+            (status, post_id)
+        )
+        await db.commit()
+
 async def get_pending_posts():
     """Получить посты готовые к публикации"""
     async with aiosqlite.connect(DB_PATH) as db:
