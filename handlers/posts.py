@@ -60,11 +60,11 @@ async def process_post_topic(message: Message, state: FSMContext):
     admin_id = get_current_admin_id()
     temp_post_storage[admin_id] = post_text
     
-    # Показываем результат
-    preview = f"📝 **Сгенерированный пост:**\n\n{post_text}\n\n" \
+    # Показываем результат (без parse_mode чтобы избежать ошибок)
+    preview = f"📝 Сгенерированный пост:\n\n{post_text}\n\n" \
               f"Выберите действие:"
     
-    await message.answer(preview, reply_markup=get_post_confirm_menu(), parse_mode="Markdown")
+    await message.answer(preview, reply_markup=get_post_confirm_menu())
     await state.clear()
 
 @router.callback_query(F.data == "publish_post")
@@ -94,8 +94,7 @@ async def publish_post_now(callback: CallbackQuery, bot: Bot):
         temp_post_storage.pop(admin_id, None)
         
         await callback.message.edit_text(
-            f"✅ **Пост опубликован!**\n\n{post_text}",
-            parse_mode="Markdown"
+            f"✅ Пост опубликован!\n\n{post_text}"
         )
         await callback.answer("✅ Пост успешно опубликован!")
         
@@ -124,10 +123,10 @@ async def process_edited_post(message: Message, state: FSMContext):
     admin_id = get_current_admin_id()
     temp_post_storage[admin_id] = message.text
     
-    preview = f"📝 **Отредактированный пост:**\n\n{message.text}\n\n" \
+    preview = f"📝 Отредактированный пост:\n\n{message.text}\n\n" \
               f"Выберите действие:"
     
-    await message.answer(preview, reply_markup=get_post_confirm_menu(), parse_mode="Markdown")
+    await message.answer(preview, reply_markup=get_post_confirm_menu())
     await state.clear()
 
 @router.callback_query(F.data == "scheduled_post")
