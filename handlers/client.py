@@ -141,19 +141,26 @@ async def show_schedule(callback: CallbackQuery):
 async def support(message: Message):
     """Связь с поддержкой"""
     from handlers.settings import get_current_admin_id
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     
     admin_id = get_current_admin_id()
     
-    text = f"""
+    text = """
 💬 **Служба поддержки**
 
-По всем вопросам обращайтесь к администратору:
-👉 [Написать админу](tg://user?id={admin_id})
+По всем вопросам обращайтесь к администратору.
 
 Обычно отвечаем в течение 24 часов ⏰
 """
     
-    await message.answer(text, parse_mode="Markdown")
+    # Кнопка для связи с админом
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="✉️ Написать админу", url=f"tg://user?id={admin_id}")]
+        ]
+    )
+    
+    await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
 
 @router.callback_query(F.data == "back_to_menu")
 async def back_to_menu(callback: CallbackQuery):
