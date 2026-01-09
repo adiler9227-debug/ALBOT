@@ -2,17 +2,20 @@
 
 from __future__ import annotations
 
+import os
+
 from pydantic import Field, PostgresDsn, RedisDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class EnvBaseSettings(BaseSettings):
-    """Base settings with .env file support."""
+    """Base settings with .env file support (optional)."""
 
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        env_file_optional=True,  # .env file is optional
     )
 
 
@@ -28,11 +31,14 @@ class BotSettings(EnvBaseSettings):
     WEBHOOK_PATH: str = "/webhook"
     WEBHOOK_SECRET: str | None = None
     WEBHOOK_HOST: str = "0.0.0.0"
-    WEBHOOK_PORT: int = 8080
+    WEBHOOK_PORT: int = int(os.getenv("PORT", "8080"))
 
 
 class DBSettings(EnvBaseSettings):
     """Database settings."""
+
+    # Railway provides DATABASE_URL, parse it if available
+    DATABASE_URL: str | None = None
 
     DB_HOST: str = "localhost"
     DB_PORT: int = 5432
@@ -43,11 +49,22 @@ class DBSettings(EnvBaseSettings):
     @property
     def database_url(self) -> str:
         """Get database URL."""
+        # Use Railway's DATABASE_URL if available
+        if self.DATABASE_URL:
+            # Replace postgres:// with postgresql+asyncpg://
+            return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://").replace(
+                "postgres://", "postgresql+asyncpg://"
+            )
+
+        # Otherwise construct from individual params
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
 
 class CacheSettings(EnvBaseSettings):
     """Redis cache settings."""
+
+    # Railway provides REDIS_URL
+    REDIS_URL: str | None = None
 
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
@@ -57,6 +74,11 @@ class CacheSettings(EnvBaseSettings):
     @property
     def redis_url(self) -> str:
         """Get Redis URL."""
+        # Use Railway's REDIS_URL if available
+        if self.REDIS_URL:
+            return self.REDIS_URL
+
+        # Otherwise construct from individual params
         password = f":{self.REDIS_PASS}@" if self.REDIS_PASS else ""
         return f"redis://{password}{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
 

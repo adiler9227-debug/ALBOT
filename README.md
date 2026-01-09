@@ -235,7 +235,37 @@ class PaymentSettings(EnvBaseSettings):
 
 ## 🚀 Deployment
 
-### Docker Compose
+### 🚂 Railway (Recommended - No .env needed!)
+
+**Полная инструкция:** [RAILWAY.md](RAILWAY.md)
+
+Быстрый старт:
+
+1. **Создайте проект:**
+   - Откройте https://railway.app
+   - "New Project" → "Deploy from GitHub"
+   - Выберите ветку: `claude/telegram-bot-aiogram-RKgac`
+
+2. **Добавьте базы данных:**
+   - "+ New" → "Database" → "PostgreSQL"
+   - "+ New" → "Database" → "Redis"
+   - Railway автоматически создаст `DATABASE_URL` и `REDIS_URL`
+
+3. **Добавьте переменные:**
+   ```
+   BOT_TOKEN=ваш_токен
+   PAYMENT_TOKEN=ваш_payment_token
+   CHANNEL_ID=-1001234567890
+   ```
+
+4. **Готово!** Railway автоматически:
+   - Запустит миграции
+   - Запустит бота
+   - Настроит автодеплой из GitHub
+
+**Стоимость:** ~$15/месяц (PostgreSQL + Redis + Compute)
+
+### 🐳 Docker Compose (Локально)
 
 Services included:
 - `postgres` - PostgreSQL 16
@@ -243,11 +273,9 @@ Services included:
 - `migrator` - Alembic migrations
 - `bot` - Telegram bot
 
-### Railway / Render
-
-1. Connect GitHub repository
-2. Add environment variables
-3. Deploy automatically
+```bash
+docker-compose up -d
+```
 
 ## 📊 Tech Stack
 
