@@ -1,229 +1,342 @@
-# 🤖 Telegram Bot на aiogram 3
+# 🤖 Telegram Bot - Breathing & Kundalini Yoga Club
 
-Telegram бот для управления подписками с системой платежей через Telegram Payments.
+Professional Telegram bot built with aiogram 3, SQLAlchemy 2.0, PostgreSQL, and Redis for subscription management and payment processing.
 
-## ✨ Основной функционал
+## ✨ Features
 
-### 1. База данных SQLite
+### Core Functionality
 
-**Таблица users:**
-- `user_id` - ID пользователя
-- `agreed` - согласие с офертой (0/1)
-- `expiry_date` - дата истечения подписки
-- `first_lesson_started` - начал ли первый урок (0/1)
-- `lesson_clicked` - кликнул ли по уроку (0/1)
+1. **Agreement System**
+   - Mandatory agreement with terms before using the bot
+   - Three documents: Offer, Privacy Policy, Consent
+   - Blocked access until user agrees
 
-**Таблица payments:**
-- `user_id` - ID пользователя
-- `amount` - сумма платежа
-- `date` - дата платежа
-- `tariff` - тариф подписки
+2. **Lesson System**
+   - Breathing lessons with video content
+   - 10-minute reminder timer using `asyncio`
+   - Automatic notification with sad cat photo if lesson not started
+   - Progress tracking per user
 
-### 2. Обязательное согласие с офертой
+3. **Telegram Payments Integration**
+   - Native Telegram Payments API
+   - Three tariffs: 30/90/365 days
+   - Automatic subscription management
+   - Payment history tracking
 
-- При первом запуске `/start` показывается оферта и политика конфиденциальности
-- Пока пользователь не согласился - доступны только кнопки с документами
-- После согласия - открывается главное меню
+4. **Auto-kick Scheduler**
+   - Daily cron job at 00:00
+   - Automatic removal of expired users from channel
+   - Ban + unban mechanism
+   - Notification to affected users
 
-### 3. Таймер напоминания (10 минут)
+5. **Personal Account**
+   - Days remaining display
+   - Payment history
+   - Subscription management
 
-- При нажатии "Старт урока" запускается фоновая задача через `asyncio.create_task`
-- Через 10 минут проверяется `lesson_clicked`
-- Если `False` - отправляется фото грустного кота
-- Использует `asyncio.sleep` для задержки
+## 🏗️ Architecture
 
-### 4. Система оплаты через Telegram Payments
+Built on professional aiogram 3 template:
 
-- Выбор тарифа (30/90/365 дней)
-- Генерация Invoice через Telegram API
-- Обработка `pre_checkout_query` - подтверждение оплаты
-- Обработка `successful_payment` - запись в БД
-- Автоматическое обновление `expiry_date` при успешной оплате
+```
+bot/
+├── __main__.py              # Entry point
+├── core/
+│   └── config.py           # Pydantic settings
+├── database/
+│   ├── database.py         # SQLAlchemy async engine
+│   └── models/             # Database models
+│       ├── base.py         # Base model
+│       ├── user.py         # User model
+│       ├── subscription.py # Subscription model
+│       ├── payment.py      # Payment model
+│       ├── agreement.py    # Agreement model
+│       └── lesson_progress.py # Lesson progress
+├── handlers/               # Message/callback handlers
+│   ├── start.py
+│   ├── agreement.py
+│   ├── lessons.py
+│   ├── payments.py
+│   ├── subscription.py
+│   └── menu.py
+├── keyboards/
+│   └── inline/            # Inline keyboards
+│       ├── agreement.py
+│       ├── tariffs.py
+│       ├── subscription.py
+│       └── menu.py
+├── middlewares/           # Aiogram middlewares
+│   ├── database.py       # Session injection
+│   └── auth.py           # User registration
+├── services/             # Business logic
+│   ├── users.py
+│   ├── subscriptions.py
+│   ├── payments.py
+│   └── channel.py
+├── scheduler.py          # APScheduler tasks
+└── locales/              # i18n translations
 
-### 5. Автоматический кик из канала
+migrations/               # Alembic migrations
+docker-compose.yml       # Docker services
+```
 
-- Ежедневная cron-задача через `apscheduler` в 00:00
-- Поиск пользователей где `expiry_date < today`
-- Для каждого: `ban_chat_member` + `unban_chat_member`
-- Отправка уведомления пользователю
+## 📦 Installation
 
-### 6. Личный кабинет
+### Using Docker (Recommended)
 
-- Кнопка "Дней осталось" - показывает `expiry_date - today`
-- История платежей из таблицы `payments`
-
-## 📦 Установка
-
-### Локально
-
-1. Клонируйте репозиторий:
+1. Clone repository:
 ```bash
-git clone <your-repo>
+git clone <repo>
 cd ALBOT
 ```
 
-2. Установите зависимости:
-```bash
-pip install -r requirements.txt
-```
-
-3. Создайте `.env` файл на основе `.env.example`:
+2. Copy environment file:
 ```bash
 cp .env.example .env
 ```
 
-4. Заполните `.env` файл:
+3. Configure `.env`:
 ```env
-BOT_TOKEN=your_bot_token_here
-PAYMENT_TOKEN=your_payment_token_here
+BOT_TOKEN=your_bot_token
+PAYMENT_TOKEN=your_payment_token
 CHANNEL_ID=-1001234567890
+
+DB_HOST=postgres
+DB_USER=postgres
+DB_PASS=postgres
+DB_NAME=bot_db
+
+REDIS_HOST=redis
 ```
 
-5. Запустите бота:
+4. Start services:
 ```bash
-python main.py
+docker-compose up -d
 ```
 
-## 🔧 Настройка
+5. Check logs:
+```bash
+docker-compose logs -f bot
+```
 
-### Получение токенов
+### Local Development
+
+1. Install Python 3.12+
+
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Setup PostgreSQL and Redis
+
+4. Create `.env` file
+
+5. Run migrations:
+```bash
+alembic upgrade head
+```
+
+6. Start bot:
+```bash
+python -m bot
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `BOT_TOKEN` | Telegram bot token from @BotFather | `123456:ABC-DEF...` |
+| `PAYMENT_TOKEN` | Payment provider token | `123456:TEST:...` |
+| `CHANNEL_ID` | Private channel ID | `-1001234567890` |
+| `DB_HOST` | PostgreSQL host | `localhost` |
+| `DB_PORT` | PostgreSQL port | `5432` |
+| `DB_USER` | Database user | `postgres` |
+| `DB_PASS` | Database password | `postgres` |
+| `DB_NAME` | Database name | `bot_db` |
+| `REDIS_HOST` | Redis host | `localhost` |
+| `REDIS_PORT` | Redis port | `6379` |
+
+### Obtaining Tokens
 
 **BOT_TOKEN:**
-1. Найдите [@BotFather](https://t.me/BotFather) в Telegram
-2. Отправьте `/newbot` и следуйте инструкциям
-3. Скопируйте полученный токен
+1. Open [@BotFather](https://t.me/BotFather)
+2. Send `/newbot`
+3. Follow instructions
+4. Copy token
 
 **PAYMENT_TOKEN:**
-1. Откройте [@BotFather](https://t.me/BotFather)
-2. Отправьте `/mybots`
-3. Выберите вашего бота
-4. Bot Settings → Payments
-5. Выберите платежного провайдера (например, YooKassa, Stripe)
-6. Скопируйте полученный токен
+1. Open [@BotFather](https://t.me/BotFather)
+2. Send `/mybots` → Select bot → Payments
+3. Choose provider (YooKassa, Stripe, etc.)
+4. Copy payment token
 
 **CHANNEL_ID:**
-1. Добавьте бота в канал как администратора
-2. Перешлите любое сообщение из канала боту [@userinfobot](https://t.me/userinfobot)
-3. Скопируйте ID канала (например: `-1001234567890`)
+1. Add bot as administrator to channel
+2. Forward message from channel to [@userinfobot](https://t.me/userinfobot)
+3. Copy channel ID
 
-### Тарифы
+### Tariff Configuration
 
-Тарифы настраиваются в `config.py`:
+Edit in `bot/core/config.py`:
 
 ```python
-TARIFFS = {
-    '30': {
-        'days': 30,
-        'price': 1990,
-        'title': '1 месяц подписки',
-        'description': 'Доступ к курсу на 30 дней'
-    },
-    # ...
-}
+class PaymentSettings(EnvBaseSettings):
+    TARIFF_30_DAYS: int = 30
+    TARIFF_30_PRICE: int = 199000  # 1990 RUB in kopecks
+    TARIFF_90_DAYS: int = 90
+    TARIFF_90_PRICE: int = 477000  # 4770 RUB in kopecks
+    TARIFF_365_DAYS: int = 365
+    TARIFF_365_PRICE: int = 1590000  # 15900 RUB in kopecks
 ```
 
-## 📁 Структура проекта
+## 🗄️ Database Schema
 
+### Tables
+
+**users**
+- `id` - User ID (primary key)
+- `first_name`, `last_name`, `username` - User info
+- `language_code` - User language
+- `is_admin`, `is_premium` - Flags
+- `created_at` - Registration date
+
+**subscriptions**
+- `id` - Subscription ID (primary key)
+- `user_id` - Foreign key to users
+- `expiry_date` - Subscription end date
+- `tariff_days` - Tariff duration
+- `is_active` - Active flag
+- `created_at` - Creation date
+
+**payments**
+- `id` - Payment ID (primary key)
+- `user_id` - Foreign key to users
+- `amount` - Amount in kopecks
+- `currency` - Currency code (RUB)
+- `tariff_days` - Purchased tariff
+- `payment_date` - Payment timestamp
+- `provider_payment_charge_id` - Provider charge ID
+
+**agreements**
+- `id` - Agreement ID (primary key)
+- `user_id` - Foreign key to users
+- `agreed` - Agreement status
+- `agreed_at` - Agreement timestamp
+
+**lesson_progress**
+- `id` - Progress ID (primary key)
+- `user_id` - Foreign key to users
+- `first_lesson_started_at` - Start timestamp
+- `lesson_clicked` - Clicked flag
+- `reminder_sent` - Reminder sent flag
+
+## 🚀 Deployment
+
+### Docker Compose
+
+Services included:
+- `postgres` - PostgreSQL 16
+- `redis` - Redis 7
+- `migrator` - Alembic migrations
+- `bot` - Telegram bot
+
+### Railway / Render
+
+1. Connect GitHub repository
+2. Add environment variables
+3. Deploy automatically
+
+## 📊 Tech Stack
+
+- **aiogram 3.15** - Async Telegram Bot framework
+- **SQLAlchemy 2.0** - Async ORM
+- **PostgreSQL 16** - Database
+- **Redis 7** - Cache & FSM storage
+- **Alembic** - Database migrations
+- **APScheduler** - Task scheduling
+- **Pydantic 2** - Settings validation
+- **Loguru** - Logging
+- **uvloop** - High-performance event loop
+
+## 🔐 Security
+
+- Environment variables for secrets
+- `.env` in `.gitignore`
+- PostgreSQL connection pooling
+- Rate limiting support
+- Proper error handling
+
+## 📝 Usage
+
+### User Flow
+
+1. `/start` - Start bot
+2. Accept agreement with documents
+3. Main menu:
+   - 🫁 Watch breathing lesson
+   - 🌿 Join breathing club
+   - 👤 My account
+4. Purchase subscription
+5. Access private channel
+
+### Admin
+
+Bot automatically tracks:
+- New user registrations
+- Payment processing
+- Subscription expiry
+- Daily auto-kick job
+
+## 🛠️ Development
+
+### Creating Migration
+
+```bash
+alembic revision --autogenerate -m "description"
+alembic upgrade head
 ```
-ALBOT/
-├── config.py           # Конфигурация и настройки
-├── main.py            # Точка входа
-├── scheduler.py       # Планировщик задач
-├── requirements.txt   # Зависимости
-├── .env.example       # Пример переменных окружения
-├── database/
-│   ├── __init__.py
-│   └── db.py         # Работа с БД
-├── handlers/
-│   ├── __init__.py
-│   ├── client.py     # Обработчики клиентских команд
-│   └── payments.py   # Обработчики платежей
-└── keyboards/
-    ├── __init__.py
-    └── client_kb.py  # Клавиатуры
+
+### Running Tests
+
+```bash
+pytest tests/
 ```
 
-## 🚀 Деплой на Railway
+### Code Quality
 
-1. Создайте аккаунт на [Railway](https://railway.app)
-
-2. Создайте новый проект из GitHub репозитория
-
-3. Добавьте переменные окружения:
-   - `BOT_TOKEN`
-   - `PAYMENT_TOKEN`
-   - `CHANNEL_ID`
-
-4. Railway автоматически деплоит при push в ветку
-
-## 📝 Использование
-
-### Для пользователей
-
-1. `/start` - запуск бота
-2. Согласие с офертой
-3. Главное меню:
-   - 🎓 Старт урока
-   - 💳 Купить подписку
-   - 👤 Личный кабинет
-
-### Личный кабинет
-
-- 📅 Дней осталось
-- 💰 История платежей
-
-## ⚙️ Технологии
-
-- **aiogram 3.15** - асинхронный фреймворк для Telegram Bot API
-- **aiosqlite** - асинхронная работа с SQLite
-- **apscheduler** - планировщик задач
-- **python-dotenv** - работа с переменными окружения
-- **aiohttp** - веб-сервер для webhook
-
-## 🔐 Безопасность
-
-- Все чувствительные данные в `.env` файле
-- `.env` файл добавлен в `.gitignore`
-- Используйте `.env.example` как шаблон
-
-## 📊 База данных
-
-SQLite база создается автоматически при первом запуске.
-
-**Расположение:** `database/bot.db`
-
-**Схема:**
-```sql
--- users
-CREATE TABLE users (
-    user_id INTEGER PRIMARY KEY,
-    username TEXT,
-    first_name TEXT,
-    agreed INTEGER DEFAULT 0,
-    expiry_date DATE,
-    first_lesson_started INTEGER DEFAULT 0,
-    lesson_clicked INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- payments
-CREATE TABLE payments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER,
-    amount INTEGER,
-    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    tariff TEXT,
-    FOREIGN KEY (user_id) REFERENCES users (user_id)
-);
+```bash
+ruff check .
+ruff format .
 ```
 
-## 🆘 Поддержка
+## 🐛 Troubleshooting
 
-При проблемах проверьте:
-1. Правильность токенов в `.env`
-2. Бот добавлен в канал как администратор
-3. У бота есть права на удаление пользователей из канала
+**Bot doesn't start:**
+- Check `BOT_TOKEN` in `.env`
+- Verify PostgreSQL is running
+- Check logs: `docker-compose logs bot`
 
-## 📄 Лицензия
+**Payments don't work:**
+- Verify `PAYMENT_TOKEN` is correct
+- Check payment provider is configured in @BotFather
+- Test with test payment token first
+
+**Users not kicked:**
+- Verify bot is admin in channel
+- Check `CHANNEL_ID` is correct
+- Check scheduler logs
+
+## 📄 License
 
 MIT License
+
+## 🤝 Contributing
+
+Pull requests are welcome!
+
+## 💬 Support
+
+For issues and questions, create GitHub issue.
