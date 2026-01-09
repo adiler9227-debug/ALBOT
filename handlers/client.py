@@ -1,171 +1,243 @@
+import asyncio
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
-
-from database.db import add_user, get_days_left, get_schedule
-from keyboards.client_kb import get_main_menu, get_subscription_menu, get_schedule_menu, get_back_button
-from keyboards.admin_kb import get_admin_menu
-from handlers.settings import is_admin
-from config import SUBSCRIPTION_PRICES
 from datetime import datetime
+
+from database.db import (
+    add_user,
+    get_user,
+    update_user_agreed,
+    update_first_lesson_started,
+    update_lesson_clicked,
+    get_days_left,
+    get_user_payments
+)
+from keyboards.client_kb import (
+    get_oferta_keyboard,
+    get_main_menu_keyboard,
+    get_tariffs_keyboard,
+    get_account_keyboard,
+    get_back_to_menu_keyboard
+)
+from config import REMINDER_DELAY, SAD_CAT_PHOTO
 
 router = Router()
 
-class ClientStates(StatesGroup):
-    waiting_payment_photo = State()
+# Словарь для отслеживания активных таймеров
+active_timers = {}
+
+async def send_reminder(user_id: int, bot):
+    """Отправка напоминания через 10 минут"""
+    await asyncio.sleep(REMINDER_DELAY)
+
+    # Проверяем, кликнул ли пользователь по уроку
+    user = await get_user(user_id)
+    if user and not user['lesson_clicked']:
+        # Отправляем фото грустного кота
+        try:
+            await bot.send_photo(
+                chat_id=user_id,
+                photo=SAD_CAT_PHOTO,
+                caption="😿 Ты так и не начал урок...\nНе забудь вернуться к обучению!"
+            )
+        except Exception as e:
+            print(f"Ошибка отправки напоминания: {e}")
+
+    # Удаляем таймер из активных
+    if user_id in active_timers:
+        del active_timers[user_id]
 
 @router.message(Command("start"))
 async def cmd_start(message: Message):
     """Обработка команды /start"""
+    user_id = message.from_user.id
+
+    # Добавляем пользователя в БД
     await add_user(
-        user_id=message.from_user.id,
+        user_id=user_id,
         username=message.from_user.username,
         first_name=message.from_user.first_name
     )
-    
-    # Проверяем - админ или клиент
-    if is_admin(message.from_user.id):
-        # Админ меню
+
+    # Проверяем согласие с офертой
+    user = await get_user(user_id)
+
+    if not user['agreed']:
+        # Показываем оферту
         text = f"""
-🔐 **Админ-панель**
-
-Привет, {message.from_user.first_name}!
-
-Выбери действие:
-"""
-        await message.answer(text, reply_markup=get_admin_menu(), parse_mode="Markdown")
-    else:
-        # Клиент меню
-        welcome_text = f"""
 👋 Привет, {message.from_user.first_name}!
 
-Добро пожаловать в клуб byAlina! 💪
+Добро пожаловать в наш бот! 🎓
 
-Здесь ты найдешь:
-• Расписание тренировок
-• Мотивационные посты
-• Поддержку и советы
+Для продолжения работы необходимо ознакомиться с документами и принять условия использования.
 
-Выбери действие в меню ниже 👇
+Нажмите на кнопки ниже для ознакомления с документами 👇
 """
-        await message.answer(welcome_text, reply_markup=get_main_menu())
-
-@router.message(F.text == "📅 Дней до окончания")
-async def check_subscription(message: Message):
-    """Проверка оставшихся дней подписки"""
-    days_left = await get_days_left(message.from_user.id)
-    
-    if days_left > 0:
-        text = f"⏰ До окончания подписки осталось: **{days_left} дней**"
-        if days_left <= 3:
-            text += "\n\n⚠️ Не забудь продлить подписку!"
+        await message.answer(text, reply_markup=get_oferta_keyboard())
     else:
-        text = "❌ У вас нет активной подписки\n\nНажмите 💳 Продлить доступ"
-    
-    await message.answer(text, parse_mode="Markdown")
+        # Показываем главное меню
+        text = f"""
+🏠 Главное меню
 
-@router.message(F.text == "💳 Продлить доступ")
-async def extend_subscription(message: Message):
-    """Меню продления подписки"""
-    text = """
-💳 **Выберите период подписки:**
-
-Чем длиннее период - тем выгоднее! 🎁
+Привет, {message.from_user.first_name}! Выбери действие:
 """
-    await message.answer(text, reply_markup=get_subscription_menu(), parse_mode="Markdown")
+        await message.answer(text, reply_markup=get_main_menu_keyboard())
 
-@router.callback_query(F.data.startswith("sub_"))
-async def process_subscription_choice(callback: CallbackQuery, state: FSMContext):
-    """Обработка выбора подписки"""
-    sub_type = callback.data.replace("sub_", "")
-    price = SUBSCRIPTION_PRICES[sub_type]
-    
-    periods = {
-        '1_month': '1 месяц',
-        '3_months': '3 месяца',
-        '6_months': '6 месяцев',
-        '12_months': '12 месяцев'
-    }
-    
+@router.callback_query(F.data == "agree_oferta")
+async def agree_oferta(callback: CallbackQuery):
+    """Согласие с офертой"""
+    user_id = callback.from_user.id
+
+    # Обновляем статус согласия
+    await update_user_agreed(user_id, True)
+
     text = f"""
-📝 **Оформление подписки**
+✅ Спасибо за согласие!
 
-Период: {periods[sub_type]}
-Стоимость: {price}₽
+🏠 Главное меню
 
-💰 **Реквизиты для оплаты:**
-Карта: `2202 2063 7495 0660`
-
-После оплаты пришлите скриншот чека 📸
+Добро пожаловать! Выбери действие:
 """
-    
-    await state.update_data(subscription_type=sub_type)
-    await state.set_state(ClientStates.waiting_payment_photo)
-    
-    await callback.message.edit_text(text, parse_mode="Markdown")
-    await callback.answer()
+    await callback.message.edit_text(text, reply_markup=get_main_menu_keyboard())
+    await callback.answer("Вы успешно приняли условия!")
 
-@router.message(F.text == "📋 Расписание")
-async def show_schedule_menu(message: Message):
-    """Показать меню расписания"""
-    text = "📋 **Выберите период:**"
-    await message.answer(text, reply_markup=get_schedule_menu(), parse_mode="Markdown")
+@router.callback_query(F.data == "start_lesson")
+async def start_lesson(callback: CallbackQuery):
+    """Старт урока"""
+    user_id = callback.from_user.id
 
-@router.callback_query(F.data.startswith("schedule_"))
-async def show_schedule(callback: CallbackQuery):
-    """Показать расписание"""
-    schedule_type = callback.data.replace("schedule_", "")
-    
-    # Определяем дату
-    today = datetime.now().strftime("%Y-%m-%d")
-    
-    type_map = {
-        'today': 'day',
-        'week': 'week',
-        'month': 'month'
-    }
-    
-    schedule = await get_schedule(today)
-    
-    if schedule:
-        text = f"📋 **Расписание:**\n\n{schedule['content']}"
-    else:
-        text = "📋 Расписание еще не готово.\nАдминистратор скоро его добавит! ⏳"
-    
-    await callback.message.edit_text(text, reply_markup=get_back_button(), parse_mode="Markdown")
-    await callback.answer()
+    # Проверяем, первый ли это урок
+    user = await get_user(user_id)
 
-@router.message(F.text == "💬 Служба поддержки")
-async def support(message: Message):
-    """Связь с поддержкой"""
-    from handlers.settings import get_current_admin_id
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-    
-    admin_id = get_current_admin_id()
-    
+    if not user['first_lesson_started']:
+        # Отмечаем начало первого урока
+        await update_first_lesson_started(user_id)
+
+        # Сбрасываем флаг lesson_clicked
+        await update_lesson_clicked(user_id, False)
+
+        # Запускаем таймер напоминания
+        if user_id in active_timers:
+            active_timers[user_id].cancel()
+
+        task = asyncio.create_task(send_reminder(user_id, callback.bot))
+        active_timers[user_id] = task
+
     text = """
-💬 **Служба поддержки**
+🎓 Урок запущен!
 
-По всем вопросам обращайтесь к администратору.
+Вот материалы для изучения:
 
-Обычно отвечаем в течение 24 часов ⏰
+📚 [Ссылка на урок здесь]
+
+Нажми на кнопку ниже, когда приступишь к изучению 👇
 """
-    
-    # Кнопка для связи с админом
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="✉️ Написать админу", url=f"tg://user?id={admin_id}")]
-        ]
-    )
-    
-    await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
+
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Приступил к уроку", callback_data="lesson_started_confirm")],
+        [InlineKeyboardButton(text="« Назад в меню", callback_data="back_to_menu")]
+    ])
+
+    await callback.message.edit_text(text, reply_markup=keyboard)
+    await callback.answer()
+
+@router.callback_query(F.data == "lesson_started_confirm")
+async def lesson_started_confirm(callback: CallbackQuery):
+    """Подтверждение начала урока"""
+    user_id = callback.from_user.id
+
+    # Отмечаем клик по уроку
+    await update_lesson_clicked(user_id, True)
+
+    # Отменяем таймер, если он активен
+    if user_id in active_timers:
+        active_timers[user_id].cancel()
+        del active_timers[user_id]
+
+    text = """
+✅ Отлично! Продолжай обучение!
+
+Желаю успехов! 💪
+"""
+    await callback.message.edit_text(text, reply_markup=get_back_to_menu_keyboard())
+    await callback.answer("Молодец! Продолжай в том же духе!")
+
+@router.callback_query(F.data == "buy_subscription")
+async def buy_subscription(callback: CallbackQuery):
+    """Меню покупки подписки"""
+    text = """
+💳 Выберите тариф:
+
+Выберите подходящий период подписки 👇
+"""
+    await callback.message.edit_text(text, reply_markup=get_tariffs_keyboard())
+    await callback.answer()
+
+@router.callback_query(F.data == "my_account")
+async def my_account(callback: CallbackQuery):
+    """Личный кабинет"""
+    text = """
+👤 Личный кабинет
+
+Выберите действие:
+"""
+    await callback.message.edit_text(text, reply_markup=get_account_keyboard())
+    await callback.answer()
+
+@router.callback_query(F.data == "days_left")
+async def days_left_handler(callback: CallbackQuery):
+    """Показать оставшиеся дни подписки"""
+    user_id = callback.from_user.id
+    days = await get_days_left(user_id)
+
+    if days > 0:
+        text = f"""
+📅 Дней осталось: {days}
+
+Ваша подписка активна до: {(datetime.now().date()).isoformat()} + {days} дней
+"""
+        if days <= 7:
+            text += "\n⚠️ Не забудьте продлить подписку!"
+    else:
+        text = """
+❌ У вас нет активной подписки
+
+Оформите подписку, чтобы получить доступ к курсу!
+"""
+
+    await callback.message.edit_text(text, reply_markup=get_back_to_menu_keyboard())
+    await callback.answer()
+
+@router.callback_query(F.data == "payment_history")
+async def payment_history_handler(callback: CallbackQuery):
+    """История платежей"""
+    user_id = callback.from_user.id
+    payments = await get_user_payments(user_id)
+
+    if payments:
+        text = "💰 История платежей:\n\n"
+        for payment in payments:
+            date = datetime.fromisoformat(payment['date']).strftime("%d.%m.%Y %H:%M")
+            text += f"• {date} - {payment['amount']} ₽ ({payment['tariff']} дней)\n"
+    else:
+        text = """
+📝 У вас пока нет платежей
+
+Оформите подписку, чтобы начать обучение!
+"""
+
+    await callback.message.edit_text(text, reply_markup=get_back_to_menu_keyboard())
+    await callback.answer()
 
 @router.callback_query(F.data == "back_to_menu")
 async def back_to_menu(callback: CallbackQuery):
-    """Вернуться в главное меню"""
-    text = "🏠 Главное меню"
-    await callback.message.edit_text(text)
-    await callback.message.answer("Выберите действие:", reply_markup=get_main_menu())
+    """Возврат в главное меню"""
+    text = """
+🏠 Главное меню
+
+Выберите действие:
+"""
+    await callback.message.edit_text(text, reply_markup=get_main_menu_keyboard())
     await callback.answer()

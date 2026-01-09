@@ -1,82 +1,77 @@
-from aiogram import Router, F, Bot
-from aiogram.types import Message
-from aiogram.fsm.context import FSMContext
+from aiogram import Router, F
+from aiogram.types import CallbackQuery, PreCheckoutQuery, Message, LabeledPrice
+from datetime import datetime
 
-from database.db import add_payment, get_user
-from keyboards.admin_kb import get_payment_confirmation
-from config import SUBSCRIPTION_PRICES
-from handlers.client import ClientStates
-from handlers.settings import get_current_admin_id
+from database.db import add_payment, update_expiry_date
+from config import PAYMENT_TOKEN, TARIFFS
+from keyboards.client_kb import get_back_to_menu_keyboard
 
 router = Router()
 
-@router.message(ClientStates.waiting_payment_photo, F.photo)
-async def process_payment_photo(message: Message, state: FSMContext, bot: Bot):
-    """Обработка фото чека"""
-    data = await state.get_data()
-    sub_type = data.get('subscription_type')
-    
-    # Получаем ID фото (самое большое качество)
-    photo_id = message.photo[-1].file_id
-    
-    # Сумма подписки
-    amount = SUBSCRIPTION_PRICES[sub_type]
-    
-    # Сохраняем платеж в БД
-    payment_id = await add_payment(
-        user_id=message.from_user.id,
-        amount=amount,
-        subscription_type=sub_type,
-        photo_id=photo_id
+@router.callback_query(F.data.startswith("tariff_"))
+async def process_tariff_selection(callback: CallbackQuery):
+    """Обработка выбора тарифа"""
+    tariff_id = callback.data.replace("tariff_", "")
+    tariff = TARIFFS[tariff_id]
+
+    # Создаем invoice
+    await callback.message.answer_invoice(
+        title=tariff['title'],
+        description=tariff['description'],
+        payload=f"tariff_{tariff_id}",
+        provider_token=PAYMENT_TOKEN,
+        currency="RUB",
+        prices=[
+            LabeledPrice(label=tariff['title'], amount=tariff['price'] * 100)  # в копейках
+        ],
+        start_parameter=f"subscription-{tariff_id}",
+        need_name=False,
+        need_phone_number=False,
+        need_email=False,
+        need_shipping_address=False,
+        is_flexible=False
     )
-    
-    # Получаем данные пользователя
-    user = await get_user(message.from_user.id)
-    
-    # Уведомляем админа
-    periods = {
-        '1_month': '1 месяц',
-        '3_months': '3 месяца',
-        '6_months': '6 месяцев',
-        '12_months': '12 месяцев'
-    }
-    
-    admin_text = f"""
-💰 **Новый платеж на проверку!**
 
-От: {message.from_user.first_name} (@{message.from_user.username or 'без username'})
-ID: `{message.from_user.id}`
+    await callback.answer()
 
-Сумма: {amount}₽
-Период: {periods[sub_type]}
+@router.pre_checkout_query()
+async def process_pre_checkout(pre_checkout_query: PreCheckoutQuery):
+    """Обработка pre_checkout запроса"""
+    # Всегда подтверждаем (можно добавить проверки)
+    await pre_checkout_query.answer(ok=True)
 
-Чек прикреплен ниже 👇
+@router.message(F.successful_payment)
+async def process_successful_payment(message: Message):
+    """Обработка успешного платежа"""
+    payment_info = message.successful_payment
+    user_id = message.from_user.id
+
+    # Получаем ID тарифа из payload
+    payload = payment_info.invoice_payload
+    tariff_id = payload.replace("tariff_", "")
+
+    tariff = TARIFFS[tariff_id]
+
+    # Записываем платеж в БД
+    await add_payment(
+        user_id=user_id,
+        amount=tariff['price'],
+        tariff=tariff['title']
+    )
+
+    # Обновляем дату окончания подписки
+    await update_expiry_date(user_id, tariff['days'])
+
+    # Отправляем подтверждение
+    text = f"""
+✅ Оплата успешно прошла!
+
+💳 Сумма: {tariff['price']} ₽
+📅 Период: {tariff['title']}
+
+Ваша подписка активирована! 🎉
+
+Приятного обучения! 🎓
 """
-    
-    admin_id = get_current_admin_id()
-    await bot.send_photo(
-        chat_id=admin_id,
-        photo=photo_id,
-        caption=admin_text,
-        reply_markup=get_payment_confirmation(payment_id, message.from_user.id),
-        parse_mode="Markdown"
-    )
-    
-    # Подтверждаем клиенту
-    await message.answer(
-        "✅ Чек получен!\n\n"
-        "Администратор проверит платеж в течение 24 часов.\n"
-        "Вы получите уведомление после проверки. 🔔",
-        reply_markup=message.reply_markup
-    )
-    
-    await state.clear()
 
-@router.message(ClientStates.waiting_payment_photo)
-async def wrong_payment_format(message: Message):
-    """Неправильный формат чека"""
-    await message.answer(
-        "❌ Пожалуйста, отправьте **фото** чека об оплате.\n\n"
-        "Если возникли проблемы - обратитесь в поддержку.",
-        parse_mode="Markdown"
-    )
+    await message.answer(text, reply_markup=get_back_to_menu_keyboard())
