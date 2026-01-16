@@ -86,22 +86,46 @@ class CacheSettings(EnvBaseSettings):
 class PaymentSettings(EnvBaseSettings):
     """Payment and subscription settings."""
 
-    PAYMENT_TOKEN: str
-    CHANNEL_ID: int
+    # Prodamus settings
+    PRODAMUS_DOMAIN: str = "club-breathing.payform.ru"
+    PRODAMUS_SECRET_KEY: str = "6c3d207165f51af3c0e81e305ace4ce5d18a9b73c145e5fa40697f6c113a9214"
+
+    # Channel settings
+    CHANNEL_ID: int = -3394467411
+
+    # Documents
     OFFER_DOCUMENT_URL: str = "https://example.com/offer.pdf"
     PRIVACY_DOCUMENT_URL: str = "https://example.com/privacy.pdf"
     CONSENT_DOCUMENT_URL: str = "https://example.com/consent.pdf"
 
-    # Tariffs configuration
+    # Tariffs configuration (prices in rubles)
+    TARIFF_7_DAYS: int = 7
+    TARIFF_7_PRICE: int = 490
+
     TARIFF_30_DAYS: int = 30
-    TARIFF_30_PRICE: int = 199000  # 1990 RUB in kopecks
+    TARIFF_30_PRICE: int = 1990
+
     TARIFF_90_DAYS: int = 90
-    TARIFF_90_PRICE: int = 477000  # 4770 RUB in kopecks
+    TARIFF_90_PRICE: int = 4990
+
+    TARIFF_180_DAYS: int = 180
+    TARIFF_180_PRICE: int = 8990
+
     TARIFF_365_DAYS: int = 365
-    TARIFF_365_PRICE: int = 1590000  # 15900 RUB in kopecks
+    TARIFF_365_PRICE: int = 16490
+
+    # Promocodes
+    VIDEO_REVIEW_PROMO: str = "VIDEOOTZIV"
+    VIDEO_REVIEW_DISCOUNT: int = 1000  # 1000 RUB discount
+
+    # Referral program
+    REFERRAL_BONUS_DAYS: int = 30  # +1 month for referrer
 
     # Reminder settings
     REMINDER_DELAY_SECONDS: int = 600  # 10 minutes
+    REMINDER_48H_SECONDS: int = 172800  # 48 hours
+    REMINDER_BEFORE_EXPIRY_DAYS: int = 3  # 3 days before expiry
+
     SAD_CAT_PHOTO_URL: str = "https://i.imgur.com/sad_cat.jpg"
 
 

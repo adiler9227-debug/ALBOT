@@ -3,50 +3,106 @@
 from __future__ import annotations
 
 from aiogram import Bot, F, Router
-from aiogram.types import CallbackQuery, LabeledPrice, Message, PreCheckoutQuery
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import CallbackQuery, Message
 from aiogram.utils.i18n import gettext as _
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.core.config import settings
-from bot.keyboards.inline import back_to_main_keyboard
-from bot.services import add_to_channel, create_payment_record, extend_subscription, mark_lesson_clicked
+from bot.keyboards.inline import back_to_main_keyboard, tariffs_keyboard
+from bot.services import mark_lesson_clicked
+from bot.services.prodamus import apply_promocode, create_payment, generate_payment_url
 
 router = Router(name="payments")
 
 
+# Payment states
+class PaymentStates(StatesGroup):
+    """Payment flow states."""
+
+    waiting_for_promocode = State()
+
+
 # Tariff configuration
 TARIFFS = {
+    "7": {
+        "days": settings.payment.TARIFF_7_DAYS,
+        "price": settings.payment.TARIFF_7_PRICE,
+        "title": "Пробная неделя",
+        "description": "Доступ к занятиям на 7 дней",
+    },
     "30": {
         "days": settings.payment.TARIFF_30_DAYS,
         "price": settings.payment.TARIFF_30_PRICE,
-        "title": _("1 Month Subscription"),
-        "description": _("Access to breathing club for 30 days"),
+        "title": "1 месяц",
+        "description": "Доступ к занятиям на 30 дней",
     },
     "90": {
         "days": settings.payment.TARIFF_90_DAYS,
         "price": settings.payment.TARIFF_90_PRICE,
-        "title": _("3 Months Subscription"),
-        "description": _("Access to breathing club for 90 days"),
+        "title": "3 месяца",
+        "description": "Доступ к занятиям на 90 дней",
+    },
+    "180": {
+        "days": settings.payment.TARIFF_180_DAYS,
+        "price": settings.payment.TARIFF_180_PRICE,
+        "title": "Полгода",
+        "description": "Доступ к занятиям на 180 дней",
     },
     "365": {
         "days": settings.payment.TARIFF_365_DAYS,
         "price": settings.payment.TARIFF_365_PRICE,
-        "title": _("12 Months Subscription"),
-        "description": _("Access to breathing club for 365 days"),
+        "title": "1 год",
+        "description": "Доступ к занятиям на 365 дней",
     },
 }
 
 
-@router.callback_query(F.data.startswith("tariff:"))
-async def tariff_selection_handler(callback: CallbackQuery, bot: Bot, session: AsyncSession) -> None:
+@router.callback_query(F.data == "buy_subscription")
+async def show_tariffs_handler(callback: CallbackQuery) -> None:
     """
-    Handle tariff selection and create invoice.
+    Show available tariffs.
+
+    Args:
+        callback: Callback query
+    """
+    if not callback.message:
+        return
+
+    text = (
+        "💎 <b>Выберите тариф:</b>\n\n"
+        f"🌱 {TARIFFS['7']['title']} — {TARIFFS['7']['price']} ₽\n"
+        f"📅 {TARIFFS['30']['title']} — {TARIFFS['30']['price']} ₽\n"
+        f"📆 {TARIFFS['90']['title']} — {TARIFFS['90']['price']} ₽ <i>(-20%)</i>\n"
+        f"🌟 {TARIFFS['180']['title']} — {TARIFFS['180']['price']} ₽ <i>(-25%)</i>\n"
+        f"⭐ {TARIFFS['365']['title']} — {TARIFFS['365']['price']} ₽ <i>(-35%)</i>\n\n"
+        "У вас есть промокод? Введите его на следующем шаге! 🎁"
+    )
+
+    await callback.message.edit_text(
+        text=text,
+        reply_markup=tariffs_keyboard(),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("tariff:"))
+async def tariff_selection_handler(
+    callback: CallbackQuery,
+    bot: Bot,
+    session: AsyncSession,
+    state: FSMContext,
+) -> None:
+    """
+    Handle tariff selection and ask for promocode.
 
     Args:
         callback: Callback query
         bot: Bot instance
         session: Database session
+        state: FSM context
     """
     if not callback.from_user or not callback.message:
         return
@@ -57,122 +113,123 @@ async def tariff_selection_handler(callback: CallbackQuery, bot: Bot, session: A
     # Get tariff ID
     tariff_id = callback.data.split(":")[1]
     if tariff_id not in TARIFFS:
-        await callback.answer(_("Invalid tariff"), show_alert=True)
+        await callback.answer("Неверный тариф", show_alert=True)
         return
 
     tariff = TARIFFS[tariff_id]
 
-    try:
-        # Send invoice
-        await bot.send_invoice(
-            chat_id=callback.from_user.id,
-            title=tariff["title"],
-            description=tariff["description"],
-            payload=f"subscription_{tariff_id}_{callback.from_user.id}",
-            provider_token=settings.payment.PAYMENT_TOKEN,
-            currency="RUB",
-            prices=[
-                LabeledPrice(
-                    label=tariff["title"],
-                    amount=tariff["price"],
-                )
-            ],
-            start_parameter=f"subscription_{tariff_id}",
-        )
+    # Save tariff to state
+    await state.update_data(tariff_id=tariff_id)
+    await state.set_state(PaymentStates.waiting_for_promocode)
 
-        await callback.answer(_("Invoice sent"))
-        logger.info(f"Sent invoice for tariff {tariff_id} to user {callback.from_user.id}")
+    # Ask for promocode
+    text = (
+        f"📦 <b>{tariff['title']}</b>\n"
+        f"💰 Стоимость: {tariff['price']} ₽\n"
+        f"📅 Срок: {tariff['days']} дней\n\n"
+        "🎁 Есть промокод? Отправьте его следующим сообщением.\n"
+        "Если промокода нет, отправьте любое сообщение или нажмите /skip"
+    )
 
-    except Exception as e:
-        logger.error(f"Failed to send invoice: {e}")
-        await callback.answer(_("Failed to create invoice. Please try again later."), show_alert=True)
+    await callback.message.edit_text(text)
+    await callback.answer()
 
 
-@router.pre_checkout_query()
-async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery) -> None:
+@router.message(PaymentStates.waiting_for_promocode)
+@router.message(F.text, F.text.startswith("/skip"))
+async def process_promocode_and_payment(
+    message: Message,
+    bot: Bot,
+    session: AsyncSession,
+    state: FSMContext,
+) -> None:
     """
-    Handle pre-checkout query.
+    Process promocode and generate payment link.
 
     Args:
-        pre_checkout_query: Pre-checkout query
-    """
-    # Validate payment (you can add custom validation here)
-    await pre_checkout_query.answer(ok=True)
-    logger.info(f"Pre-checkout approved for user {pre_checkout_query.from_user.id}")
-
-
-@router.message(F.successful_payment)
-async def successful_payment_handler(message: Message, bot: Bot, session: AsyncSession) -> None:
-    """
-    Handle successful payment.
-
-    Args:
-        message: Message with successful payment
+        message: User message with promocode
         bot: Bot instance
         session: Database session
+        state: FSM context
     """
-    if not message.from_user or not message.successful_payment:
+    if not message.from_user or not message.text:
         return
 
-    payment_info = message.successful_payment
+    # Get tariff from state
+    data = await state.get_data()
+    tariff_id = data.get("tariff_id")
+
+    if not tariff_id or tariff_id not in TARIFFS:
+        await message.answer("Ошибка: тариф не выбран. Начните заново с /start")
+        await state.clear()
+        return
+
+    tariff = TARIFFS[tariff_id]
     user_id = message.from_user.id
+    base_price = tariff["price"]
 
-    # Parse tariff from payload
-    try:
-        payload_parts = payment_info.invoice_payload.split("_")
-        tariff_id = payload_parts[1]
+    # Check if user wants to skip promocode
+    skip_promocode = message.text.lower() in ["/skip", "пропустить", "нет", "skip"]
 
-        if tariff_id not in TARIFFS:
-            logger.error(f"Invalid tariff ID in payload: {tariff_id}")
-            return
+    # Try to apply promocode
+    final_price = base_price
+    promocode_model = None
+    promocode_text = ""
 
-        tariff = TARIFFS[tariff_id]
-
-        # Create payment record
-        await create_payment_record(
-            session=session,
-            user_id=user_id,
-            amount=payment_info.total_amount,
-            currency=payment_info.currency,
-            tariff_days=tariff["days"],
-            provider_payment_charge_id=payment_info.provider_payment_charge_id,
+    if not skip_promocode:
+        promocode = message.text.strip().upper()
+        final_price, promocode_model = await apply_promocode(
+            session, user_id, promocode, base_price
         )
 
-        # Extend subscription
-        subscription = await extend_subscription(
-            session=session,
-            user_id=user_id,
-            days=tariff["days"],
-        )
+        if promocode_model:
+            discount = base_price - final_price
+            promocode_text = f"\n🎉 Промокод применен! Скидка: {discount} ₽"
+        else:
+            promocode_text = "\n⚠️ Промокод не найден или уже использован"
 
-        # Add user to channel
-        await add_to_channel(bot, user_id)
+    # Create pending payment record
+    order_id = f"user_{user_id}_days_{tariff['days']}"
 
-        # Send confirmation
-        success_text = _(
-            "✅ Payment successful!\n\n"
-            "💳 Amount: {amount} {currency}\n"
-            "📅 Period: {days} days\n\n"
-            "Your subscription is activated! 🎉\n\n"
-            "Welcome to the Breathing Club! 🌿\n"
-            "Join our channel: [Channel Link]\n\n"
-            "Happy learning! 🎓"
-        ).format(
-            amount=payment_info.total_amount // 100,
-            currency=payment_info.currency,
-            days=tariff["days"],
-        )
+    await create_payment(
+        session=session,
+        user_id=user_id,
+        amount=final_price,
+        subscription_days=tariff["days"],
+        payment_id=order_id,
+        status="pending",
+    )
 
-        await message.answer(
-            text=success_text,
-            reply_markup=back_to_main_keyboard(),
-        )
+    # Record promocode usage if applied
+    if promocode_model:
+        from bot.services.prodamus import record_promocode_usage
+        await record_promocode_usage(session, user_id, promocode_model)
 
-        logger.info(f"Successfully processed payment for user {user_id}, tariff {tariff_id}")
+    # Generate payment URL
+    payment_url = generate_payment_url(
+        order_id=order_id,
+        amount=final_price,
+        products=f"{tariff['title']} - {tariff['days']} дней",
+    )
 
-    except Exception as e:
-        logger.error(f"Error processing successful payment: {e}")
-        await message.answer(
-            _("Payment received, but there was an error activating subscription. Please contact support."),
-            reply_markup=back_to_main_keyboard(),
-        )
+    # Send payment link
+    text = (
+        f"💳 <b>Оплата подписки</b>\n\n"
+        f"📦 Тариф: {tariff['title']}\n"
+        f"📅 Срок: {tariff['days']} дней\n"
+        f"💰 К оплате: <b>{final_price} ₽</b>"
+        f"{promocode_text}\n\n"
+        f"👇 Нажмите на кнопку ниже для оплаты:\n"
+        f'<a href="{payment_url}">💳 Оплатить {final_price} ₽</a>\n\n'
+        f"После оплаты вы автоматически получите доступ к каналу! 🎉"
+    )
+
+    await message.answer(text, reply_markup=back_to_main_keyboard())
+
+    # Clear state
+    await state.clear()
+
+    logger.info(
+        f"Generated payment link for user {user_id}: "
+        f"{tariff['days']} days, {final_price} RUB"
+    )

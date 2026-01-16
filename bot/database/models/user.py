@@ -13,6 +13,8 @@ if TYPE_CHECKING:
     from .payment import PaymentModel
     from .agreement import AgreementModel
     from .lesson_progress import LessonProgressModel
+    from .referral import ReferralModel
+    from .video_review import VideoReviewModel
 
 
 class UserModel(Base):
@@ -41,5 +43,12 @@ class UserModel(Base):
     lesson_progress: Mapped[LessonProgressModel | None] = relationship(
         "LessonProgressModel", back_populates="user", uselist=False
     )
+    referrals_made: Mapped[list[ReferralModel]] = relationship(
+        "ReferralModel", foreign_keys="ReferralModel.referrer_id", back_populates="referrer"
+    )
+    referred_by: Mapped[ReferralModel | None] = relationship(
+        "ReferralModel", foreign_keys="ReferralModel.referred_id", back_populates="referred", uselist=False
+    )
+    video_reviews: Mapped[list[VideoReviewModel]] = relationship("VideoReviewModel", back_populates="user")
 
     repr_cols = ("id", "first_name", "username")
