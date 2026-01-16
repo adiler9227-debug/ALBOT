@@ -180,7 +180,7 @@ async def process_referral_bonus(session: AsyncSession, referred_user_id: int) -
 
 async def health_check(request: web.Request) -> web.Response:
     """Health check endpoint for Railway."""
-    return web.Response(text="OK")
+    return web.Response(text="OK", status=200)
 
 
 def setup_webhook_handlers(app: web.Application) -> None:
@@ -192,3 +192,4 @@ def setup_webhook_handlers(app: web.Application) -> None:
     """
     app.router.add_post("/prodamus-webhook", handle_prodamus_webhook)
     app.router.add_get("/health", health_check)
+    app.router.add_get("/", health_check)  # Root endpoint also responds to health checks

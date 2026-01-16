@@ -35,10 +35,13 @@ async def on_startup(bot: Bot) -> None:
     """
     logger.info("Bot started")
 
-    # Setup scheduler
-    scheduler = setup_scheduler(bot)
-    scheduler.start()
-    logger.info("Scheduler started")
+    try:
+        # Setup scheduler
+        scheduler = setup_scheduler(bot)
+        scheduler.start()
+        logger.info("Scheduler started")
+    except Exception as e:
+        logger.warning(f"Failed to start scheduler: {e}")
 
 
 async def on_shutdown(bot: Bot) -> None:
