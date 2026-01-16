@@ -1,160 +1,101 @@
-# 🚂 Деплой на Railway - Пошаговая инструкция
+# 🚀 Railway Deployment Guide
 
-## ✅ Что готово
+## ✅ Pre-deployment Checklist
 
-Бот полностью готов к деплою на Railway с возможностью **быстрой смены**:
-- ID канала/группы
-- ID админа
+### 1. Database & Cache Services Created
+- ✅ PostgreSQL database added in Railway
+- ✅ Redis cache added in Railway
+- ✅ `DATABASE_URL` automatically set by Railway
+- ✅ `REDIS_URL` automatically set by Railway
 
-Без правки кода!
+### 2. Environment Variables Required
 
----
+Add these in Railway dashboard → Variables:
 
-## 📋 Шаг 1: Подготовка GitHub
-
-### 1.1 Создай репозиторий на GitHub
-1. Зайди на https://github.com
-2. Нажми "New repository"
-3. Назови: `subscription-bot-byalina`
-4. Нажми "Create repository"
-
-### 1.2 Загрузи код
-```bash
-# В терминале
-cd subscription_bot
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/ВАШ_USERNAME/subscription-bot-byalina.git
-git push -u origin main
-```
-
----
-
-## 🚂 Шаг 2: Деплой на Railway
-
-### 2.1 Создай проект
-1. Зайди на https://railway.app
-2. Войди через GitHub
-3. Нажми "New Project"
-4. Выбери "Deploy from GitHub repo"
-5. Выбери `subscription-bot-byalina`
-
-### 2.2 Настрой переменные окружения
-
-В Railway нажми на проект → "Variables" → добавь:
-
-```
+```env
 BOT_TOKEN=8387775247:AAEpMDc-JAmdD5jzTCrQ6BP5kb1h9qSXmCg
-ADMIN_ID=7737327242
-CHANNEL_ID=-1003574169604
-GEMINI_API_KEY=AIzaSyC8pSz7DA30xueWrgLs1qJxAjP5TWD2hrU
+CHANNEL_ID=-3394467411
 ```
 
-### 2.3 Настрой запуск
-
-Railway автоматически определит Python, но проверь:
-
-- **Start Command**: `python main.py`
-- **Install Command**: `pip install -r requirements.txt`
-
-### 2.4 Деплой
-
-Нажми "Deploy" - бот запустится автоматически!
+**Note:** `DATABASE_URL` and `REDIS_URL` are auto-created by Railway when you add PostgreSQL/Redis services.
 
 ---
 
-## ⚙️ Быстрая смена настроек (БЕЗ правки кода!)
+## 🔧 Deployment Process
 
-### Изменить ID админа:
+### Railway will automatically:
 
-1. Напиши боту `/settings`
-2. Нажми "👤 Изменить ID админа"
-3. Отправь новый ID
-4. Готово! ✅
-
-### Изменить ID канала:
-
-1. Напиши боту `/settings`
-2. Нажми "📢 Изменить ID канала"
-3. Отправь новый ID канала
-4. Готово! ✅
-
-### Посмотреть текущие настройки:
-
-`/settings` → "👁 Показать настройки"
+1. **Build the Docker container** from `Dockerfile`
+2. **Run migrations**: `alembic upgrade head` (creates all tables)
+3. **Start the bot**: `python -m bot`
+4. **Health check**: `/health` endpoint on port from `$PORT`
 
 ---
 
-## 🔄 Как обновить бота (после изменений в коде)
+## 📊 Database Tables Created
 
-```bash
-git add .
-git commit -m "Update"
-git push
-```
+After `alembic upgrade head` runs, these tables will be created:
 
-Railway автоматически задеплоит новую версию!
-
----
-
-## ✅ Проверка работы
-
-### 1. Для клиента:
-- Напиши боту `/start`
-- Должно появиться меню
-
-### 2. Для админа:
-- Напиши `/admin` - должна открыться админ-панель
-- Напиши `/settings` - должно открыться меню настроек
+- ✅ `users` - User accounts
+- ✅ `subscriptions` - Active subscriptions
+- ✅ `payments` - Payment transactions
+- ✅ `agreements` - User consent tracking
+- ✅ `lesson_progress` - Free lesson viewing
+- ✅ `promocodes` - Promocode system
+- ✅ `promocode_usage` - Usage tracking
+- ✅ `referrals` - Referral program
+- ✅ `video_reviews` - Video testimonials
 
 ---
 
-## 🆘 Решение проблем
+## 💳 Payment Integration
 
-### Бот не отвечает:
-1. Проверь логи в Railway (раздел "Deployments")
-2. Убедись что все переменные окружения правильные
-3. Проверь что бот добавлен в канал как админ
+### Prodamus Links Connected
 
-### Не могу опубликовать пост:
-1. Проверь что бот добавлен в канал
-2. Проверь права бота (должен быть админом с правом публикации)
-3. Проверь ID канала через `/settings`
+| Tariff | Price | Days | Prodamus Link |
+|--------|-------|------|---------------|
+| 🌱 Пробная неделя | 490 ₽ | 7 | https://payform.ru/4lanBvw/ |
+| 📅 1 месяц | 1990 ₽ | 30 | https://payform.ru/4kanBwA/ |
+| 📆 3 месяца | 4990 ₽ | 90 | https://payform.ru/5canBwZ/ |
+| 🌟 6 месяцев | 8990 ₽ | 180 | https://payform.ru/66anBxq/ |
+| ⭐ 1 год | 16490 ₽ | 365 | https://payform.ru/6tanBxN/ |
 
-### Хочу сменить канал:
-1. `/settings` → "📢 Изменить ID канала"
-2. Отправь новый ID
-3. Добавь бота в новый канал как админа
+### Webhook Configuration
 
----
+After deployment, configure Prodamus webhook:
 
-## 💰 Стоимость Railway
+1. Get your Railway URL: `https://your-app.up.railway.app`
+2. Set webhook URL in Prodamus: `https://your-app.up.railway.app/prodamus-webhook`
+3. Secret key is already configured in code
 
-- **Hobby Plan**: $5/месяц (включает $5 кредитов)
-- Для этого бота хватит с запасом
-- Бот работает 24/7 без остановок
+### How Payments Work
 
----
-
-## 📱 Команды бота
-
-### Для всех:
-- `/start` - начать работу с ботом
-
-### Только для админа:
-- `/admin` - админ панель
-- `/settings` - настройки (смена ID)
+1. User selects tariff (7/30/90/180/365 days)
+2. Bot generates: `{prodamus_link}?order_id=user_{user_id}_days_{days}`
+3. User pays on Prodamus
+4. Prodamus sends webhook
+5. Bot activates subscription for correct days
+6. User gets channel invite
 
 ---
 
-## 🎯 Что дальше?
+## 🎁 Features Enabled
 
-После деплоя можешь:
-1. Тестировать бот
-2. Менять настройки через `/settings`
-3. Публиковать посты
-4. Создавать расписания
+- ✅ Referral program (+30 days bonus)
+- ✅ Video reviews (VIDEOOTZIV promocode, -1000₽)
+- ✅ Auto reminders (48-72h, 3 days before expiry)
+- ✅ Daily auto-kick at 00:00
 
-Все работает! 🚀
+---
+
+## 🧪 Testing After Deploy
+
+1. `/start` command
+2. Payment flow for each tariff
+3. Webhook receives notifications
+4. User added to channel
+5. Referral link generation
+
+---
+
+## ✨ Ready for Production!
