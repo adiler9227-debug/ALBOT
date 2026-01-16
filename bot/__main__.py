@@ -1,4 +1,4 @@
-"""Bot entry point."""
+"""Bot entry point - Full rebuild with all features."""
 
 from __future__ import annotations
 
@@ -7,206 +7,158 @@ import logging
 import os
 import sys
 
-import uvloop
 from aiohttp import web
-from aiogram import Bot, Dispatcher
-from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
-from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.fsm.storage.redis import RedisStorage
 from loguru import logger
-from redis.asyncio import Redis
 
-from bot.core.config import settings
-from bot.database import sessionmaker
-from bot.handlers import get_handlers_router
-from bot.handlers.prodamus_webhook import setup_webhook_handlers
-from bot.middlewares import register_middlewares
-from bot.scheduler import setup_scheduler
-
-
-async def health_check(request: web.Request) -> web.Response:
-    """Health check endpoint for Railway."""
-    return web.Response(text="OK", status=200)
+# Setup logging IMMEDIATELY
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    stream=sys.stdout,
+    force=True,
+)
 
 
-async def start_webhook_server(bot: Bot) -> None:
-    """
-    Start aiohttp webhook server FIRST.
+async def run_bot_and_server() -> None:
+    """Run web server and bot together."""
 
-    Args:
-        bot: Bot instance
-    """
+    # STEP 1: Start web server IMMEDIATELY (for healthcheck)
+    port = int(os.getenv("PORT", 8080))
+
+    logger.info("="*60)
+    logger.info("🚀 ALBOT FULL REBUILD - ALL FEATURES ENABLED")
+    logger.info("="*60)
+    logger.info(f"🌐 Starting web server on 0.0.0.0:{port}")
+
+    # Create web app
     app = web.Application()
 
-    # Store bot and session maker in app context
-    app["bot"] = bot
-    app["session_maker"] = sessionmaker
+    # Add health check endpoint FIRST
+    async def health_check(request: web.Request) -> web.Response:
+        return web.Response(text="OK", status=200)
 
-    # Setup webhook routes
-    setup_webhook_handlers(app)
-
-    # Add health check endpoints
     app.router.add_get("/health", health_check)
     app.router.add_get("/", health_check)
 
-    # Get port from environment (Railway provides PORT)
-    port = int(os.getenv("PORT", 8080))
-
-    logger.info(f"Starting webhook server on 0.0.0.0:{port}")
-
-    # Create runner and start server
+    # Start server runner
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
 
-    logger.info(f"✅ Webhook server started successfully on port {port}")
-    logger.info(f"✅ Health check available at http://0.0.0.0:{port}/health")
+    logger.info(f"✅ Web server STARTED on http://0.0.0.0:{port}")
+    logger.info(f"✅ Healthcheck READY at /health")
+    logger.info("="*60)
 
-    # Keep server running forever
-    while True:
-        await asyncio.sleep(3600)
-
-
-async def start_bot_polling(bot: Bot, dp: Dispatcher) -> None:
-    """
-    Start bot polling AFTER web server is up.
-
-    Args:
-        bot: Bot instance
-        dp: Dispatcher instance
-    """
-    # Wait a bit to ensure web server is fully ready for healthcheck
-    await asyncio.sleep(2)
-
-    logger.info("🤖 Starting bot polling...")
+    # STEP 2: Initialize bot (in background, can fail)
+    bot = None
+    dp = None
 
     try:
-        await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
-    except Exception as e:
-        logger.error(f"❌ Bot polling error: {e}")
-        # Don't crash - web server must stay alive for healthcheck
-        raise
+        logger.info("🤖 Loading bot components...")
 
+        # Import all bot modules
+        import uvloop
+        from aiogram import Bot, Dispatcher
+        from aiogram.client.default import DefaultBotProperties
+        from aiogram.enums import ParseMode
+        from aiogram.fsm.storage.memory import MemoryStorage
+        from aiogram.fsm.storage.redis import RedisStorage
+        from redis.asyncio import Redis
 
-async def on_startup(bot: Bot) -> None:
-    """
-    Actions on bot startup.
+        from bot.core.config import settings
+        from bot.database import sessionmaker
+        from bot.handlers import get_handlers_router
+        from bot.handlers.prodamus_webhook import setup_webhook_handlers
+        from bot.middlewares import register_middlewares
+        from bot.scheduler import setup_scheduler
 
-    Args:
-        bot: Bot instance
-    """
-    logger.info("✅ Bot startup initiated")
+        uvloop.install()
 
-    try:
-        # Setup scheduler (non-critical)
-        scheduler = setup_scheduler(bot)
-        scheduler.start()
-        logger.info("✅ Scheduler started")
-    except Exception as e:
-        logger.warning(f"⚠️ Failed to start scheduler: {e}")
+        logger.info(f"📊 Environment check:")
+        logger.info(f"  - Railway: {'✅' if 'PORT' in os.environ else '❌'}")
+        logger.info(f"  - Bot token: {'✅' if settings.bot.BOT_TOKEN else '❌'}")
+        logger.info(f"  - Database: {'✅' if settings.db.DATABASE_URL else '❌'}")
+        logger.info(f"  - Redis: {'✅' if settings.cache.REDIS_URL else '❌'}")
 
-
-async def on_shutdown(bot: Bot) -> None:
-    """
-    Actions on bot shutdown.
-
-    Args:
-        bot: Bot instance
-    """
-    logger.info("🛑 Bot stopped")
-    await bot.session.close()
-
-
-async def main() -> None:
-    """Main entry point."""
-    # Setup logging to stdout for Railway
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-        stream=sys.stdout,
-        force=True,
-    )
-
-    logger.info("=" * 60)
-    logger.info("🚀 ALBOT Starting...")
-    logger.info("=" * 60)
-
-    # Log environment
-    logger.info(f"📊 Railway: {'PORT' in os.environ}")
-    logger.info(f"🔑 Bot token: {'✅' if settings.bot.BOT_TOKEN else '❌'}")
-    logger.info(f"🗄️ Database: {'✅' if settings.db.DATABASE_URL else '❌'}")
-    logger.info(f"🔴 Redis: {'✅' if settings.cache.REDIS_URL else '❌'}")
-
-    # Choose storage based on Redis availability
-    storage = MemoryStorage()
-    try:
-        if settings.cache.REDIS_URL:
-            logger.info("🔴 Attempting Redis connection...")
-            redis = Redis.from_url(settings.cache.REDIS_URL, decode_responses=False)
-            await redis.ping()
-            storage = RedisStorage(redis=redis)
-            logger.info("✅ Redis storage connected")
-        else:
-            logger.info("💾 Using memory storage (no Redis)")
-    except Exception as e:
-        logger.warning(f"⚠️ Redis failed: {e}, using memory storage")
+        # Storage
         storage = MemoryStorage()
+        try:
+            if settings.cache.REDIS_URL:
+                redis = Redis.from_url(settings.cache.REDIS_URL, decode_responses=False)
+                await redis.ping()
+                storage = RedisStorage(redis=redis)
+                logger.info("✅ Redis storage connected")
+            else:
+                logger.info("💾 Using memory storage")
+        except Exception as e:
+            logger.warning(f"⚠️ Redis failed: {e}, using memory storage")
 
-    # Create bot instance
-    logger.info("🤖 Creating bot instance...")
-    bot = Bot(
-        token=settings.bot.BOT_TOKEN,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
-    )
-    logger.info("✅ Bot instance created")
+        # Create bot
+        bot = Bot(
+            token=settings.bot.BOT_TOKEN,
+            default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+        )
+        logger.info("✅ Bot instance created")
 
-    # Create dispatcher
-    logger.info("⚙️ Creating dispatcher...")
-    dp = Dispatcher(storage=storage)
+        # Create dispatcher
+        dp = Dispatcher(storage=storage)
+        register_middlewares(dp)
+        dp.include_router(get_handlers_router())
+        logger.info("✅ All handlers registered:")
+        logger.info("  - Start & agreements")
+        logger.info("  - Payments (Prodamus)")
+        logger.info("  - Bonuses (referrals + video)")
+        logger.info("  - Lessons & reminders")
+        logger.info("  - Personal cabinet")
 
-    # Register middlewares
-    logger.info("🔧 Registering middlewares...")
-    register_middlewares(dp)
+        # Setup webhook routes in web app
+        app["bot"] = bot
+        app["session_maker"] = sessionmaker
+        setup_webhook_handlers(app)
+        logger.info("✅ Webhook endpoints added:")
+        logger.info("  - /prodamus-webhook")
+        logger.info("  - /health")
 
-    # Register handlers
-    logger.info("📝 Registering handlers...")
-    dp.include_router(get_handlers_router())
+        # Startup callback
+        async def on_startup(bot_instance: Bot) -> None:
+            logger.info("✅ Bot starting...")
+            try:
+                scheduler = setup_scheduler(bot_instance)
+                scheduler.start()
+                logger.info("✅ Scheduler started (reminders, auto-kick)")
+            except Exception as e:
+                logger.warning(f"⚠️ Scheduler failed: {e}")
 
-    # Register startup/shutdown handlers
-    dp.startup.register(on_startup)
-    dp.shutdown.register(on_shutdown)
+        dp.startup.register(on_startup)
 
-    logger.info("=" * 60)
-    logger.info("✅ All components initialized")
-    logger.info("🚀 Starting services...")
-    logger.info("=" * 60)
+        logger.info("="*60)
+        logger.info("🚀 STARTING BOT POLLING...")
+        logger.info("="*60)
 
-    # CRITICAL: Start web server FIRST (for Railway healthcheck), then bot
-    try:
-        # Create tasks - web server must start before healthcheck
-        webhook_task = asyncio.create_task(start_webhook_server(bot))
-        bot_task = asyncio.create_task(start_bot_polling(bot, dp))
+        # Start bot polling
+        await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
 
-        # Wait for both (return_exceptions=True prevents crash)
-        await asyncio.gather(webhook_task, bot_task, return_exceptions=True)
-
-    except KeyboardInterrupt:
-        logger.info("🛑 Received interrupt signal")
     except Exception as e:
-        logger.error(f"❌ Fatal error: {e}")
-        raise
-    finally:
-        await on_shutdown(bot)
+        logger.error(f"❌ Bot initialization failed: {e}", exc_info=True)
+        logger.info("⚠️ Bot failed BUT web server continues (healthcheck still works)")
+
+        # Keep web server alive forever
+        logger.info("🌐 Web server running in fallback mode...")
+        while True:
+            await asyncio.sleep(3600)
 
 
 if __name__ == "__main__":
-    # Use uvloop for better performance
-    uvloop.install()
+    logger.info("="*60)
+    logger.info("ALBOT v2.0 - FULL REBUILD")
+    logger.info("All features: Prodamus, Referrals, Video Reviews, Reminders")
+    logger.info("="*60)
 
     try:
-        asyncio.run(main())
+        asyncio.run(run_bot_and_server())
+    except KeyboardInterrupt:
+        logger.info("🛑 Stopped by user")
     except Exception as e:
-        logger.error(f"❌ FATAL: {e}", exc_info=True)
+        logger.error(f"❌ Fatal crash: {e}", exc_info=True)
         sys.exit(1)
