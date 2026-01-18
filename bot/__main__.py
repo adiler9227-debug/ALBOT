@@ -8,7 +8,6 @@ import os
 import signal
 import sys
 
-import uvloop
 from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
