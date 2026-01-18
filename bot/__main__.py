@@ -8,6 +8,11 @@ import os
 import signal
 import sys
 
+# DEBUG: Print to confirm module is loading
+print("=" * 60, flush=True)
+print("🔧 DEBUG: bot/__main__.py is being imported", flush=True)
+print("=" * 60, flush=True)
+
 from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
