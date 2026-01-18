@@ -55,29 +55,6 @@ runner: web.AppRunner | None = None
 
 
 # =========================
-# HEALTHCHECK ENDPOINTS
-# =========================
-async def health_handler(request: web.Request) -> web.Response:
-    """
-    Health check endpoint с информацией о статусе бота.
-
-    Returns:
-        JSON с статусом приложения
-    """
-    status = "alive" if BOT_ALIVE else "starting"
-    return web.json_response({
-        "status": "ok",
-        "bot": status,
-        "version": "1.0.0"
-    })
-
-
-async def root_handler(request: web.Request) -> web.Response:
-    """Root endpoint для Railway."""
-    return web.Response(text="OK")
-
-
-# =========================
 # WEB SERVER
 # =========================
 async def start_web_server() -> web.AppRunner:
@@ -95,12 +72,8 @@ async def start_web_server() -> web.AppRunner:
     app["bot"] = bot
     app["session_maker"] = sessionmaker
 
-    # Setup webhook routes (Prodamus)
+    # Setup webhook routes (includes /, /health, /prodamus-webhook)
     setup_webhook_handlers(app)
-
-    # Add health endpoints
-    app.router.add_get("/", root_handler)
-    app.router.add_get("/health", health_handler)
 
     # Create and start runner
     runner = web.AppRunner(app)
