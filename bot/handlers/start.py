@@ -60,27 +60,34 @@ async def start_handler(message: Message, session: AsyncSession) -> None:
 
     # Check if user agreed to terms
     if not await check_agreement(session, user_id):
-        # Show agreement screen
+        # Show agreement screen with photo
         agreement_text = (
             f"👋 Привет, {message.from_user.first_name}!\n\n"
-            "Добро пожаловать в наш бот! 🎓\n\n"
-            "Для продолжения работы необходимо ознакомиться с документами и принять условия использования.\n\n"
-            "Продолжая использование бота, вы соглашаетесь с:\n"
-            "• Политикой конфиденциальности\n"
-            "• Согласием на получение рекламных рассылок\n"
-            "• Согласием на обработку персональных данных\n\n"
-            "Нажмите на кнопки ниже для ознакомления с документами 👇"
+            "Добро пожаловать в мир дыхательных практик и кундалини-йоги 🧘‍♀️\n\n"
+            "Чтобы продолжить, ознакомьтесь с документами и примите условия использования.\n\n"
+            "Нажмите на кнопки ниже 👇"
         )
 
-        await message.answer(
-            text=agreement_text,
-            reply_markup=agreement_keyboard(),
-        )
+        # TODO: Replace with actual photo URL or file_id
+        photo_url = "https://example.com/alina_photo.jpg"  # НУЖНА ССЫЛКА НА ФОТО АЛИНЫ!
+
+        try:
+            await message.answer_photo(
+                photo=photo_url,
+                caption=agreement_text,
+                reply_markup=agreement_keyboard(),
+            )
+        except Exception:
+            # Fallback if photo fails
+            await message.answer(
+                text=agreement_text,
+                reply_markup=agreement_keyboard(),
+            )
     else:
         # Show main menu
         welcome_text = (
             f"👋 С возвращением, {message.from_user.first_name}!\n\n"
-            "Рад видеть тебя снова! 🌿"
+            "Рада видеть тебя снова! 🌿"
         )
 
         await message.answer(

@@ -16,10 +16,10 @@ def agreement_keyboard() -> InlineKeyboardMarkup:
         InlineKeyboardMarkup
     """
     buttons = [
-        [InlineKeyboardButton(text="📄 Offer", url=settings.payment.OFFER_DOCUMENT_URL)],
-        [InlineKeyboardButton(text="🔒 Privacy Policy", url=settings.payment.PRIVACY_DOCUMENT_URL)],
-        [InlineKeyboardButton(text="📋 Consent", url=settings.payment.CONSENT_DOCUMENT_URL)],
-        [InlineKeyboardButton(text="✅ I Agree", callback_data="agreement:agree")],
+        [InlineKeyboardButton(text="📄 Оферта", url=settings.payment.OFFER_DOCUMENT_URL)],
+        [InlineKeyboardButton(text="🔒 Политика конфиденциальности", url=settings.payment.PRIVACY_DOCUMENT_URL)],
+        [InlineKeyboardButton(text="📋 Согласие на обработку данных", url=settings.payment.CONSENT_DOCUMENT_URL)],
+        [InlineKeyboardButton(text="✅ Я согласен(а)", callback_data="agreement:agree")],
     ]
 
     keyboard = InlineKeyboardBuilder(markup=buttons)

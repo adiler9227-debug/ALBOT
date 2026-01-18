@@ -14,11 +14,11 @@ def main_keyboard() -> InlineKeyboardMarkup:
         InlineKeyboardMarkup
     """
     buttons = [
-        [InlineKeyboardButton(text="🫁 Watch Breathing Lesson", callback_data="lesson:watch")],
-        [InlineKeyboardButton(text="🌿 Join Breathing Club", callback_data="lesson:join")],
-        [InlineKeyboardButton(text="👤 My Account", callback_data="menu:account")],
-        [InlineKeyboardButton(text="🎁 Bonuses", callback_data="bonuses")],
-        [InlineKeyboardButton(text="ℹ️ Info", callback_data="menu:info")],
+        [InlineKeyboardButton(text="🫁 Посмотреть урок по дыханию", callback_data="lesson:watch")],
+        [InlineKeyboardButton(text="🌿 Вступить в клуб дыхания", callback_data="lesson:join")],
+        [InlineKeyboardButton(text="👤 Мой аккаунт", callback_data="menu:account")],
+        [InlineKeyboardButton(text="🎁 Бонусы", callback_data="bonuses")],
+        [InlineKeyboardButton(text="ℹ️ Информация", callback_data="menu:info")],
     ]
 
     keyboard = InlineKeyboardBuilder(markup=buttons)
@@ -33,7 +33,7 @@ def back_to_main_keyboard() -> InlineKeyboardMarkup:
         InlineKeyboardMarkup
     """
     buttons = [
-        [InlineKeyboardButton(text="« Back to Menu", callback_data="menu:main")],
+        [InlineKeyboardButton(text="« Назад в меню", callback_data="menu:main")],
     ]
 
     keyboard = InlineKeyboardBuilder(markup=buttons)

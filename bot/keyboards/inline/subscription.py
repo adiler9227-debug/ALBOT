@@ -14,10 +14,10 @@ def subscription_keyboard() -> InlineKeyboardMarkup:
         InlineKeyboardMarkup
     """
     buttons = [
-        [InlineKeyboardButton(text="📅 Days Left", callback_data="subscription:days_left")],
-        [InlineKeyboardButton(text="💰 Payment History", callback_data="subscription:history")],
-        [InlineKeyboardButton(text="💳 Buy Subscription", callback_data="subscription:buy")],
-        [InlineKeyboardButton(text="« Back", callback_data="menu:main")],
+        [InlineKeyboardButton(text="📅 Осталось дней", callback_data="subscription:days_left")],
+        [InlineKeyboardButton(text="💰 История платежей", callback_data="subscription:history")],
+        [InlineKeyboardButton(text="💳 Купить подписку", callback_data="subscription:buy")],
+        [InlineKeyboardButton(text="« Назад", callback_data="menu:main")],
     ]
 
     keyboard = InlineKeyboardBuilder(markup=buttons)
@@ -32,7 +32,7 @@ def back_to_account_keyboard() -> InlineKeyboardMarkup:
         InlineKeyboardMarkup
     """
     buttons = [
-        [InlineKeyboardButton(text="« Back to Account", callback_data="menu:account")],
+        [InlineKeyboardButton(text="« Назад к аккаунту", callback_data="menu:account")],
     ]
 
     keyboard = InlineKeyboardBuilder(markup=buttons)

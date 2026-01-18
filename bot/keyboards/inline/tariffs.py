@@ -53,7 +53,7 @@ def tariffs_keyboard() -> InlineKeyboardMarkup:
                 callback_data="tariff:365",
             )
         ],
-        [InlineKeyboardButton(text="« Back", callback_data="menu:main")],
+        [InlineKeyboardButton(text="« Назад", callback_data="menu:main")],
     ]
 
     keyboard = InlineKeyboardBuilder(markup=buttons)
