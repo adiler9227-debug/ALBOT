@@ -23,7 +23,7 @@ from loguru import logger
 from redis.asyncio import Redis
 
 from bot.core.config import settings
-from bot.database import create_engine, sessionmaker
+from bot.database import sessionmaker
 from bot.handlers import get_handlers_router
 from bot.handlers.prodamus_webhook import setup_webhook_handlers
 from bot.middlewares import register_middlewares
@@ -238,17 +238,15 @@ async def main() -> None:
     logger.info("=" * 60)
 
     try:
-        # === 1. Инициализация БД ===
-        logger.info("📦 Creating database engine")
-        create_engine()
-        logger.success("✅ Database engine created")
+        # === 1. Database engine is already created on import ===
+        logger.info("📦 Database engine ready")
 
         # === 2. Инициализация хранилища ===
         try:
-            if settings.redis.REDIS_URL:
+            if settings.cache.REDIS_URL:
                 logger.info("🔄 Attempting to connect to Redis...")
                 redis = Redis.from_url(
-                    settings.redis.REDIS_URL,
+                    settings.cache.redis_url,
                     decode_responses=False
                 )
                 storage = RedisStorage(redis=redis)
