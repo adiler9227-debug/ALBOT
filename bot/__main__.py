@@ -180,20 +180,22 @@ async def shutdown(signal_name: str | None = None) -> None:
 # =========================
 # STARTUP LOGIC
 # =========================
-async def on_startup(bot_instance: Bot) -> None:
+async def on_startup(dispatcher: Dispatcher) -> None:
     """
     Actions on bot startup.
 
     Args:
-        bot_instance: Bot instance
+        dispatcher: Dispatcher instance (aiogram passes this automatically)
     """
     logger.info("🚀 Bot startup sequence initiated")
 
     try:
-        # Setup scheduler (non-critical)
-        scheduler = setup_scheduler(bot_instance)
-        scheduler.start()
-        logger.success("⏰ Scheduler started")
+        # Get bot from global variable (bot is already created)
+        global bot
+        if bot:
+            scheduler = setup_scheduler(bot)
+            scheduler.start()
+            logger.success("⏰ Scheduler started")
     except Exception as e:
         logger.warning(f"⚠️ Failed to start scheduler: {e}")
         logger.warning("⚠️ Continuing without scheduler")
