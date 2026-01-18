@@ -320,13 +320,6 @@ async def main() -> None:
 # ENTRY POINT
 # =========================
 if __name__ == "__main__":
-    # Install uvloop для производительности
-    try:
-        uvloop.install()
-        logger.info("🌀 uvloop installed")
-    except ImportError:
-        logger.warning("⚠️ uvloop not available, using default asyncio")
-
     try:
         asyncio.run(main())
     except Exception as e:
