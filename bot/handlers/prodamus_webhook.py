@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from bot.core.config import settings
 from bot.database.models import ReferralModel
-from bot.services.channel import add_user_to_channel
+from bot.services.channel import add_to_channel
 from bot.services.prodamus import create_payment, update_payment_status
 from bot.services.subscriptions import extend_subscription
 
@@ -103,7 +103,7 @@ async def handle_prodamus_webhook(
                 await process_referral_bonus(session, user_id)
 
                 # Add user to channel
-                invite_link = await add_user_to_channel(bot, user_id, settings.payment.CHANNEL_ID)
+                invite_link = await add_to_channel(bot, user_id, settings.payment.CHANNEL_ID)
 
                 # Send success message to user
                 message_text = (
