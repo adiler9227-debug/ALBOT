@@ -102,7 +102,16 @@ async def check_agreement(session: AsyncSession, user_id: int) -> bool:
     query = select(AgreementModel).filter_by(user_id=user_id)
     result = await session.execute(query)
     agreement = result.scalar_one_or_none()
-    return agreement.agreed if agreement else False
+
+    # Проверяем все три согласия
+    if not agreement:
+        return False
+
+    return (
+        agreement.agreed_to_offer and
+        agreement.agreed_to_privacy and
+        agreement.agreed_to_consent
+    )
 
 
 async def set_agreement(session: AsyncSession, user_id: int) -> AgreementModel:
@@ -121,13 +130,16 @@ async def set_agreement(session: AsyncSession, user_id: int) -> AgreementModel:
     agreement = result.scalar_one_or_none()
 
     if agreement:
-        agreement.agreed = True
-        agreement.agreed_at = datetime.datetime.utcnow()
+        agreement.agreed_to_offer = True
+        agreement.agreed_to_privacy = True
+        agreement.agreed_to_consent = True
+        agreement.updated_at = datetime.datetime.utcnow()
     else:
         agreement = AgreementModel(
             user_id=user_id,
-            agreed=True,
-            agreed_at=datetime.datetime.utcnow(),
+            agreed_to_offer=True,
+            agreed_to_privacy=True,
+            agreed_to_consent=True,
         )
         session.add(agreement)
 

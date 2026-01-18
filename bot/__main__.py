@@ -8,6 +8,11 @@ import os
 import signal
 import sys
 
+# DEBUG: Print to confirm module is loading
+print("=" * 60, flush=True)
+print("🔧 DEBUG: bot/__main__.py is being imported", flush=True)
+print("=" * 60, flush=True)
+
 from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -18,7 +23,7 @@ from loguru import logger
 from redis.asyncio import Redis
 
 from bot.core.config import settings
-from bot.database import create_engine, sessionmaker
+from bot.database import sessionmaker
 from bot.handlers import get_handlers_router
 from bot.handlers.prodamus_webhook import setup_webhook_handlers
 from bot.middlewares import register_middlewares
@@ -50,29 +55,6 @@ runner: web.AppRunner | None = None
 
 
 # =========================
-# HEALTHCHECK ENDPOINTS
-# =========================
-async def health_handler(request: web.Request) -> web.Response:
-    """
-    Health check endpoint с информацией о статусе бота.
-
-    Returns:
-        JSON с статусом приложения
-    """
-    status = "alive" if BOT_ALIVE else "starting"
-    return web.json_response({
-        "status": "ok",
-        "bot": status,
-        "version": "1.0.0"
-    })
-
-
-async def root_handler(request: web.Request) -> web.Response:
-    """Root endpoint для Railway."""
-    return web.Response(text="OK")
-
-
-# =========================
 # WEB SERVER
 # =========================
 async def start_web_server() -> web.AppRunner:
@@ -90,12 +72,8 @@ async def start_web_server() -> web.AppRunner:
     app["bot"] = bot
     app["session_maker"] = sessionmaker
 
-    # Setup webhook routes (Prodamus)
+    # Setup webhook routes (includes /, /health, /prodamus-webhook)
     setup_webhook_handlers(app)
-
-    # Add health endpoints
-    app.router.add_get("/", root_handler)
-    app.router.add_get("/health", health_handler)
 
     # Create and start runner
     runner = web.AppRunner(app)
@@ -202,20 +180,22 @@ async def shutdown(signal_name: str | None = None) -> None:
 # =========================
 # STARTUP LOGIC
 # =========================
-async def on_startup(bot_instance: Bot) -> None:
+async def on_startup(dispatcher: Dispatcher) -> None:
     """
     Actions on bot startup.
 
     Args:
-        bot_instance: Bot instance
+        dispatcher: Dispatcher instance (aiogram passes this automatically)
     """
     logger.info("🚀 Bot startup sequence initiated")
 
     try:
-        # Setup scheduler (non-critical)
-        scheduler = setup_scheduler(bot_instance)
-        scheduler.start()
-        logger.success("⏰ Scheduler started")
+        # Get bot from global variable (bot is already created)
+        global bot
+        if bot:
+            scheduler = setup_scheduler(bot)
+            scheduler.start()
+            logger.success("⏰ Scheduler started")
     except Exception as e:
         logger.warning(f"⚠️ Failed to start scheduler: {e}")
         logger.warning("⚠️ Continuing without scheduler")
@@ -233,17 +213,15 @@ async def main() -> None:
     logger.info("=" * 60)
 
     try:
-        # === 1. Инициализация БД ===
-        logger.info("📦 Creating database engine")
-        create_engine()
-        logger.success("✅ Database engine created")
+        # === 1. Database engine is already created on import ===
+        logger.info("📦 Database engine ready")
 
         # === 2. Инициализация хранилища ===
         try:
-            if settings.redis.REDIS_URL:
+            if settings.cache.REDIS_URL:
                 logger.info("🔄 Attempting to connect to Redis...")
                 redis = Redis.from_url(
-                    settings.redis.REDIS_URL,
+                    settings.cache.redis_url,
                     decode_responses=False
                 )
                 storage = RedisStorage(redis=redis)
@@ -317,13 +295,6 @@ async def main() -> None:
 # ENTRY POINT
 # =========================
 if __name__ == "__main__":
-    # Install uvloop для производительности
-    try:
-        uvloop.install()
-        logger.info("🌀 uvloop installed")
-    except ImportError:
-        logger.warning("⚠️ uvloop not available, using default asyncio")
-
     try:
         asyncio.run(main())
     except Exception as e:
