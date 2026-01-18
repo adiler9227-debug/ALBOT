@@ -6,7 +6,6 @@ import asyncio
 
 from aiogram import Bot, F, Router
 from aiogram.types import CallbackQuery, FSInputFile, URLInputFile
-from aiogram.utils.i18n import gettext as _
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -129,11 +128,11 @@ async def lesson_watch_handler(
     # Send lesson video (you need to upload it first or use URL)
     # For now, just send a placeholder
     await callback.message.answer(
-        _("🎥 Here's your breathing practice video:\n\n[Video would be here]"),
+        "🎥 Here's your breathing practice video:\n\n[Video would be here]",
         reply_markup=back_to_main_keyboard(),
     )
 
-    await callback.answer(_("Lesson started"))
+    await callback.answer("Lesson started")
 
 
 @router.callback_query(F.data == "lesson:join")
@@ -169,4 +168,4 @@ async def lesson_join_handler(
         text=join_text,
         reply_markup=tariffs_keyboard(),
     )
-    await callback.answer(_("Select tariff"))
+    await callback.answer("Select tariff")

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
-from aiogram.utils.i18n import gettext as _
 
 from bot.keyboards.inline import main_keyboard
 
@@ -19,9 +18,9 @@ async def main_menu_handler(callback: CallbackQuery) -> None:
     Args:
         callback: Callback query
     """
-    menu_text = _(
-        "🏠 Main Menu\n\n"
-        "Choose an action:"
+    menu_text = (
+        "🏠 Главное меню\n\n"
+        "Выберите действие:"
     )
 
     await callback.message.edit_text(
@@ -41,18 +40,18 @@ async def info_handler(callback: CallbackQuery) -> None:
     """
     from bot.keyboards.inline import back_to_main_keyboard
 
-    info_text = _(
-        "ℹ️ About the Bot\n\n"
-        "This bot is your guide to the world of breathing practices and Kundalini yoga.\n\n"
-        "Created by: Alina Bazhenova\n"
-        "Experience: 6+ years\n\n"
-        "What you'll get:\n"
-        "• Breathing practices\n"
-        "• Kundalini yoga classes\n"
-        "• Anxiety and stress management techniques\n"
-        "• Improved sleep and well-being\n"
-        "• Increased energy and confidence\n\n"
-        "Join us! 🌿"
+    info_text = (
+        "ℹ️ О боте\n\n"
+        "Этот бот — твой проводник в мир дыхательных практик и Кундалини йоги.\n\n"
+        "Автор: Алина Баженова\n"
+        "Опыт: 6+ лет\n\n"
+        "Что ты получишь:\n"
+        "• Дыхательные практики\n"
+        "• Занятия по Кундалини йоге\n"
+        "• Техники работы с тревожностью и стрессом\n"
+        "• Улучшение сна и самочувствия\n"
+        "• Повышение энергии и уверенности\n\n"
+        "Присоединяйся! 🌿"
     )
 
     await callback.message.edit_text(

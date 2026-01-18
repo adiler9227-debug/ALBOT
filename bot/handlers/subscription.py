@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
-from aiogram.utils.i18n import gettext as _
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.keyboards.inline import back_to_account_keyboard, subscription_keyboard, tariffs_keyboard
@@ -58,7 +57,7 @@ async def days_left_handler(callback: CallbackQuery, session: AsyncSession) -> N
         ).format(days=days)
 
         if days <= 7:
-            days_text += _("⚠️ Don't forget to renew your subscription!")
+            days_text += "⚠️ Don't forget to renew your subscription!"
     else:
         days_text = _(
             "❌ No Active Subscription\n\n"
@@ -88,7 +87,7 @@ async def payment_history_handler(callback: CallbackQuery, session: AsyncSession
     payments = await get_payment_history(session, callback.from_user.id, limit=10)
 
     if payments:
-        history_text = _("💰 Payment History\n\n")
+        history_text = "💰 Payment History\n\n"
         for payment in payments:
             date_str = payment.payment_date.strftime("%d.%m.%Y %H:%M")
             amount_str = f"{payment.amount // 100:.2f}"

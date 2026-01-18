@@ -5,7 +5,6 @@ from __future__ import annotations
 from aiogram import Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
-from aiogram.utils.i18n import gettext as _
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -62,16 +61,16 @@ async def start_handler(message: Message, session: AsyncSession) -> None:
     # Check if user agreed to terms
     if not await check_agreement(session, user_id):
         # Show agreement screen
-        agreement_text = _(
-            "👋 Hello, {name}!\n\n"
-            "Welcome to our bot! 🎓\n\n"
-            "To continue, you need to review the documents and accept the terms of use.\n\n"
-            "By continuing to use the bot, you agree to:\n"
-            "• Privacy Policy\n"
-            "• Consent to receive promotional mailings\n"
-            "• Consent to personal data processing\n\n"
-            "Click the buttons below to review the documents 👇"
-        ).format(name=message.from_user.first_name)
+        agreement_text = (
+            f"👋 Привет, {message.from_user.first_name}!\n\n"
+            "Добро пожаловать в наш бот! 🎓\n\n"
+            "Для продолжения работы необходимо ознакомиться с документами и принять условия использования.\n\n"
+            "Продолжая использование бота, вы соглашаетесь с:\n"
+            "• Политикой конфиденциальности\n"
+            "• Согласием на получение рекламных рассылок\n"
+            "• Согласием на обработку персональных данных\n\n"
+            "Нажмите на кнопки ниже для ознакомления с документами 👇"
+        )
 
         await message.answer(
             text=agreement_text,
@@ -79,10 +78,10 @@ async def start_handler(message: Message, session: AsyncSession) -> None:
         )
     else:
         # Show main menu
-        welcome_text = _(
-            "👋 Welcome back, {name}!\n\n"
-            "I'm happy to see you again! 🌿"
-        ).format(name=message.from_user.first_name)
+        welcome_text = (
+            f"👋 С возвращением, {message.from_user.first_name}!\n\n"
+            "Рад видеть тебя снова! 🌿"
+        )
 
         await message.answer(
             text=welcome_text,
