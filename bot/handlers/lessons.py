@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.core.config import settings
 from bot.keyboards.inline import back_to_main_keyboard, main_keyboard, tariffs_keyboard
-from bot.services import get_lesson_progress, mark_lesson_clicked, mark_reminder_sent, start_lesson
+from bot.services import get_lesson_progress, mark_lesson_watched, mark_reminder_sent, start_lesson
 
 router = Router(name="lessons")
 
@@ -150,8 +150,8 @@ async def lesson_join_handler(
     if not callback.from_user:
         return
 
-    # Mark lesson as clicked
-    await mark_lesson_clicked(session, callback.from_user.id)
+    # Mark lesson as watched
+    await mark_lesson_watched(session, callback.from_user.id)
 
     # Show tariffs
     join_text = _(
