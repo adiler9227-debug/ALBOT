@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from aiogram.utils.i18n import gettext as _
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot.core.config import settings
@@ -54,7 +53,7 @@ def tariffs_keyboard() -> InlineKeyboardMarkup:
                 callback_data="tariff:365",
             )
         ],
-        [InlineKeyboardButton(text=_("« Back"), callback_data="menu:main")],
+        [InlineKeyboardButton(text="« Назад", callback_data="menu:main")],
     ]
 
     keyboard = InlineKeyboardBuilder(markup=buttons)

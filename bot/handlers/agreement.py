@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
-from aiogram.utils.i18n import gettext as _
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.keyboards.inline import main_keyboard
@@ -29,25 +28,25 @@ async def agreement_agree_handler(callback: CallbackQuery, session: AsyncSession
     await set_agreement(session, callback.from_user.id)
 
     # Show welcome message with main menu
-    welcome_text = _(
-        "✅ Thank you for accepting!\n\n"
-        "👋 Welcome, {name}!\n\n"
-        "Welcome to the world of breathing practices and Kundalini yoga 🧘‍♀️\n\n"
-        "This bot is your guide and helper, with which you will:\n\n"
-        "• Learn to cope with anxiety and stress\n"
-        "• Get rid of chronic fatigue and apathy\n"
-        "• Get rid of swelling and excess weight\n"
-        "• Become more energetic and confident\n"
-        "• Improve sleep and general well-being\n"
-        "• Increase libido and sexuality\n"
-        "• Improve memory and cognitive functions\n"
-        "• Get rid of addictions\n"
-        "• Strengthen your inner support\n\n"
-        "Let's start small 👇"
-    ).format(name=callback.from_user.first_name)
+    welcome_text = (
+        f"✅ Спасибо за согласие!\n\n"
+        f"👋 Добро пожаловать, {callback.from_user.first_name}!\n\n"
+        "Добро пожаловать в мир дыхательных практик и кундалини-йоги 🧘‍♀️\n\n"
+        "С этим ботом ты:\n\n"
+        "• Научишься справляться с тревогой и стрессом\n"
+        "• Избавишься от хронической усталости и апатии\n"
+        "• Уберешь отеки и лишний вес\n"
+        "• Станешь более энергичной и уверенной\n"
+        "• Улучшишь сон и общее самочувствие\n"
+        "• Повысишь либидо и сексуальность\n"
+        "• Улучшишь память и когнитивные функции\n"
+        "• Избавишься от зависимостей\n"
+        "• Укрепишь внутреннюю опору\n\n"
+        "Начнем с малого 👇"
+    )
 
     await callback.message.edit_text(
         text=welcome_text,
         reply_markup=main_keyboard(),
     )
-    await callback.answer(_("Agreement accepted"))
+    await callback.answer("Согласие принято")

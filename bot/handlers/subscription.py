@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
-from aiogram.utils.i18n import gettext as _
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.keyboards.inline import back_to_account_keyboard, subscription_keyboard, tariffs_keyboard
@@ -21,12 +20,12 @@ async def account_menu_handler(callback: CallbackQuery) -> None:
     Args:
         callback: Callback query
     """
-    account_text = _(
-        "👤 My Account\n\n"
-        "Here you can:\n"
-        "• Check days left in subscription\n"
-        "• View payment history\n"
-        "• Buy or extend subscription"
+    account_text = (
+        "👤 Мой аккаунт\n\n"
+        "Здесь ты можешь:\n"
+        "• Проверить остаток дней подписки\n"
+        "• Посмотреть историю платежей\n"
+        "• Купить или продлить подписку"
     )
 
     await callback.message.edit_text(
@@ -51,19 +50,19 @@ async def days_left_handler(callback: CallbackQuery, session: AsyncSession) -> N
     days = await get_days_left(session, callback.from_user.id)
 
     if days > 0:
-        days_text = _(
-            "📅 Subscription Status\n\n"
-            "✅ Active subscription\n"
-            "Days left: {days}\n\n"
-        ).format(days=days)
+        days_text = (
+            f"📅 Статус подписки\n\n"
+            f"✅ Подписка активна\n"
+            f"Осталось дней: {days}\n\n"
+        )
 
         if days <= 7:
-            days_text += _("⚠️ Don't forget to renew your subscription!")
+            days_text += "⚠️ Не забудь продлить подписку!"
     else:
-        days_text = _(
-            "❌ No Active Subscription\n\n"
-            "You don't have an active subscription.\n"
-            "Buy subscription to get access to all materials!"
+        days_text = (
+            "❌ Нет активной подписки\n\n"
+            "У тебя нет активной подписки.\n"
+            "Купи подписку, чтобы получить доступ ко всем материалам!"
         )
 
     await callback.message.edit_text(
@@ -88,22 +87,17 @@ async def payment_history_handler(callback: CallbackQuery, session: AsyncSession
     payments = await get_payment_history(session, callback.from_user.id, limit=10)
 
     if payments:
-        history_text = _("💰 Payment History\n\n")
+        history_text = "💰 История платежей\n\n"
         for payment in payments:
             date_str = payment.payment_date.strftime("%d.%m.%Y %H:%M")
             amount_str = f"{payment.amount // 100:.2f}"
-            history_text += _(
-                "• {date} - {amount} {currency} ({days} days)\n"
-            ).format(
-                date=date_str,
-                amount=amount_str,
-                currency=payment.currency,
-                days=payment.tariff_days,
+            history_text += (
+                f"• {date_str} - {amount_str} {payment.currency} ({payment.tariff_days} дней)\n"
             )
     else:
-        history_text = _(
-            "📝 No payments yet\n\n"
-            "Buy your first subscription to start learning!"
+        history_text = (
+            "📝 Платежей пока нет\n\n"
+            "Купи первую подписку, чтобы начать обучение!"
         )
 
     await callback.message.edit_text(
@@ -121,10 +115,10 @@ async def buy_subscription_handler(callback: CallbackQuery) -> None:
     Args:
         callback: Callback query
     """
-    tariff_text = _(
-        "💳 Buy Subscription\n\n"
-        "Choose subscription period:\n"
-        "The longer the period - the more profitable! 🎁"
+    tariff_text = (
+        "💳 Купить подписку\n\n"
+        "Выбери срок подписки:\n"
+        "Чем дольше срок - тем выгоднее! 🎁"
     )
 
     await callback.message.edit_text(

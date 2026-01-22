@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.core.config import settings
 from bot.keyboards.inline import back_to_main_keyboard, tariffs_keyboard
-from bot.services import mark_lesson_clicked
+from bot.services import mark_lesson_watched
 from bot.services.prodamus import create_payment
 
 router = Router(name="payments")
@@ -120,8 +120,8 @@ async def tariff_selection_handler(
     if not callback.from_user or not callback.message:
         return
 
-    # Mark lesson as clicked (user is interested)
-    await mark_lesson_clicked(session, callback.from_user.id)
+    # Mark lesson as watched (user is interested)
+    await mark_lesson_watched(session, callback.from_user.id)
 
     # Get tariff ID
     tariff_id = callback.data.split(":")[1]

@@ -179,15 +179,15 @@ async def start_lesson(session: AsyncSession, user_id: int) -> LessonProgressMod
     progress = await get_lesson_progress(session, user_id)
 
     if progress:
-        if not progress.first_lesson_started_at:
-            progress.first_lesson_started_at = datetime.datetime.utcnow()
-        progress.lesson_clicked = False
+        if not progress.watched_free_lesson:
+            progress.watched_free_lesson = True
+            progress.free_lesson_watched_at = datetime.datetime.utcnow()
         progress.reminder_sent = False
     else:
         progress = LessonProgressModel(
             user_id=user_id,
-            first_lesson_started_at=datetime.datetime.utcnow(),
-            lesson_clicked=False,
+            watched_free_lesson=True,
+            free_lesson_watched_at=datetime.datetime.utcnow(),
             reminder_sent=False,
         )
         session.add(progress)
@@ -198,9 +198,9 @@ async def start_lesson(session: AsyncSession, user_id: int) -> LessonProgressMod
     return progress
 
 
-async def mark_lesson_clicked(session: AsyncSession, user_id: int) -> None:
+async def mark_lesson_watched(session: AsyncSession, user_id: int) -> None:
     """
-    Mark lesson as clicked.
+    Mark lesson as watched.
 
     Args:
         session: Database session
@@ -208,9 +208,10 @@ async def mark_lesson_clicked(session: AsyncSession, user_id: int) -> None:
     """
     progress = await get_lesson_progress(session, user_id)
     if progress:
-        progress.lesson_clicked = True
+        progress.watched_free_lesson = True
+        progress.free_lesson_watched_at = datetime.datetime.utcnow()
         await session.commit()
-        logger.info(f"Lesson clicked for user {user_id}")
+        logger.info(f"Lesson watched for user {user_id}")
 
 
 async def mark_reminder_sent(session: AsyncSession, user_id: int) -> None:

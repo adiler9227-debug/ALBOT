@@ -5,7 +5,6 @@ from __future__ import annotations
 from aiogram import Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
-from aiogram.utils.i18n import gettext as _
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -61,28 +60,33 @@ async def start_handler(message: Message, session: AsyncSession) -> None:
 
     # Check if user agreed to terms
     if not await check_agreement(session, user_id):
-        # Show agreement screen
-        agreement_text = _(
-            "👋 Hello, {name}!\n\n"
-            "Welcome to our bot! 🎓\n\n"
-            "To continue, you need to review the documents and accept the terms of use.\n\n"
-            "By continuing to use the bot, you agree to:\n"
-            "• Privacy Policy\n"
-            "• Consent to receive promotional mailings\n"
-            "• Consent to personal data processing\n\n"
-            "Click the buttons below to review the documents 👇"
-        ).format(name=message.from_user.first_name)
-
-        await message.answer(
-            text=agreement_text,
-            reply_markup=agreement_keyboard(),
+        # Show agreement screen with photo
+        agreement_text = (
+            f"👋 Привет, {message.from_user.first_name}!\n\n"
+            "Добро пожаловать в мир дыхательных практик и кундалини-йоги 🧘‍♀️\n\n"
+            "Чтобы продолжить, ознакомьтесь с документами и примите условия использования.\n\n"
+            "Нажмите на кнопки ниже 👇"
         )
+
+        # Use Alina's photo file_id
+        try:
+            await message.answer_photo(
+                photo="AgACAgIAAxkBAAEaQolpcZlg40EexVxrocHGW3g2R-hElgACiw1rG8H-kEviZM0QjXvNLQEAAwIAA3gAAzgE",
+                caption=agreement_text,
+                reply_markup=agreement_keyboard(),
+            )
+        except Exception:
+            # Fallback if photo fails
+            await message.answer(
+                text=agreement_text,
+                reply_markup=agreement_keyboard(),
+            )
     else:
         # Show main menu
-        welcome_text = _(
-            "👋 Welcome back, {name}!\n\n"
-            "I'm happy to see you again! 🌿"
-        ).format(name=message.from_user.first_name)
+        welcome_text = (
+            f"👋 С возвращением, {message.from_user.first_name}!\n\n"
+            "Рада видеть тебя снова! 🌿"
+        )
 
         await message.answer(
             text=welcome_text,

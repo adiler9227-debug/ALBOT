@@ -22,11 +22,11 @@ class AgreementModel(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), unique=True)
-    
+
     agreed_to_offer: Mapped[bool] = mapped_column(default=False)
     agreed_to_privacy: Mapped[bool] = mapped_column(default=False)
     agreed_to_consent: Mapped[bool] = mapped_column(default=False)
-    
+
     created_at: Mapped[created_at]
     updated_at: Mapped[created_at]
 

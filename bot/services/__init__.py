@@ -16,7 +16,7 @@ from .users import (
     get_lesson_progress,
     get_user,
     is_admin,
-    mark_lesson_clicked,
+    mark_lesson_watched,
     mark_reminder_sent,
     set_agreement,
     start_lesson,
@@ -48,6 +48,6 @@ __all__ = [
     "set_agreement",
     "get_lesson_progress",
     "start_lesson",
-    "mark_lesson_clicked",
+    "mark_lesson_watched",
     "mark_reminder_sent",
 ]
