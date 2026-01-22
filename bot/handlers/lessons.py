@@ -116,15 +116,22 @@ async def lesson_watch_handler(
         "- ходила к психологам, глотала таблетки (седативные, антидепрессанты), искала поддержку у близких и друзей. Но тревога не отпускает, возвращается снова и снова. \n\n"
         "Этот урок про другой способ. Через тело и дыхание. \n\n"
         "⏱ Всего 8 минут. \n"
-        "Найди тихое место, нажми 'play' и просто следуй за голосом 👇 он зависает и остается выходит с кнопкой и висит"
+        "Найди тихое место, нажми 'play' и просто следуй за голосом 👇"
     )
 
-    await callback.message.edit_text(
+    # 1. Send text as a new message (as requested)
+    await callback.message.answer(
         text=lesson_text,
         reply_markup=back_to_main_keyboard(),
     )
+    
+    # Optional: Delete the previous message with the button to avoid clutter
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
 
-    # Send lesson video
+    # 2. Send video separately immediately after
     if settings.payment.LESSON_VIDEO_URL:
         try:
             if settings.payment.LESSON_VIDEO_URL.startswith("http"):
@@ -142,13 +149,13 @@ async def lesson_watch_handler(
             logger.error(f"Failed to send lesson video: {e}")
             # Fallback to text placeholder
             await callback.message.answer(
-                "🎥 Вот твоё видео с дыхательной практикой: \n\n[Видео будет здесь] вот это работает а другое нет",
+                "🎥 Вот твоё видео с дыхательной практикой: \n\n[Видео будет здесь] (не удалось загрузить)",
                 reply_markup=back_to_main_keyboard(),
             )
     else:
         # Placeholder if no video URL configured
         await callback.message.answer(
-            "🎥 Вот твоё видео с дыхательной практикой: \n\n[Видео будет здесь] вот это работает а другое нет",
+            "🎥 Вот твоё видео с дыхательной практикой: \n\n[Видео будет здесь]",
             reply_markup=back_to_main_keyboard(),
         )
 
