@@ -61,7 +61,7 @@ async def show_bonuses_menu(callback: CallbackQuery, session: AsyncSession) -> N
     )
 
     if has_video_review:
-        text += f"└ ✅ Видео-отзыв отправлен! Промокод VIDEOOTZIV активирован\n\n"
+        text += f"└ ✅ Видео-отзыв отправлен! Промокод активирован на {settings.payment.VIDEO_REVIEW_DISCOUNT} ₽\n\n"
     else:
         text += (
             f"└ 📹 Отправьте видео-отзыв и получите промокод на {settings.payment.VIDEO_REVIEW_DISCOUNT} ₽!\n\n"
@@ -72,7 +72,7 @@ async def show_bonuses_menu(callback: CallbackQuery, session: AsyncSession) -> N
         "1️⃣ <b>Пригласи друга</b> — нажми кнопку ниже, получи реферальную ссылку\n"
         "   Когда друг оплатит подписку, ты получишь +30 дней в подарок!\n\n"
         "2️⃣ <b>Видео-отзыв</b> — запиши короткое видео о своих впечатлениях\n"
-        f"   Получи промокод VIDEOOTZIV на скидку {settings.payment.VIDEO_REVIEW_DISCOUNT} ₽!"
+        f"   Получи промокод на скидку {settings.payment.VIDEO_REVIEW_DISCOUNT} ₽!"
     )
 
     from aiogram.types import InlineKeyboardButton

@@ -68,12 +68,10 @@ async def start_handler(message: Message, session: AsyncSession) -> None:
             "Нажмите на кнопки ниже 👇"
         )
 
-        # TODO: Replace with actual photo URL or file_id
-        photo_url = "https://example.com/alina_photo.jpg"  # НУЖНА ССЫЛКА НА ФОТО АЛИНЫ!
-
+        # Use Alina's photo file_id
         try:
             await message.answer_photo(
-                photo=photo_url,
+                photo="AgACAgIAAxkBAAEaQolpcZlg40EexVxrocHGW3g2R-hElgACiw1rG8H-kEviZM0QjXvNLQEAAwIAA3gAAzgE",
                 caption=agreement_text,
                 reply_markup=agreement_keyboard(),
             )

@@ -94,9 +94,9 @@ class PaymentSettings(EnvBaseSettings):
     CHANNEL_ID: int = -3394467411
 
     # Documents
-    OFFER_DOCUMENT_URL: str = "https://example.com/offer.pdf"
-    PRIVACY_DOCUMENT_URL: str = "https://example.com/privacy.pdf"
-    CONSENT_DOCUMENT_URL: str = "https://example.com/consent.pdf"
+    OFFER_DOCUMENT_URL: str = "https://telegra.ph/Dogovor-oferty-Klub-Dyhaniya-01-18"
+    PRIVACY_DOCUMENT_URL: str = "https://telegra.ph/Politika-konfidencialnosti-Klub-Dyhaniya-01-18"
+    CONSENT_DOCUMENT_URL: str = "https://telegra.ph/Soglasie-na-obrabotku-dannyh-Klub-Dyhaniya-01-18"
 
     # Tariffs configuration (prices in rubles)
     TARIFF_7_DAYS: int = 7
