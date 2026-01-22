@@ -96,6 +96,22 @@ async def handle_prodamus_webhook(
                 # Update payment status
                 payment = await update_payment_status(session, payment_id, "success")
 
+                if not payment:
+                    # Create payment if not exists (e.g. if we didn't save pending state)
+                    try:
+                        amount = float(data_dict.get("sum", 0))
+                    except (ValueError, TypeError):
+                        amount = 0
+                        
+                    payment = await create_payment(
+                        session=session,
+                        user_id=user_id,
+                        amount=int(amount),
+                        subscription_days=subscription_days,
+                        payment_id=payment_id,
+                        status="success"
+                    )
+
                 # Extend subscription
                 await extend_subscription(session, user_id, subscription_days)
 

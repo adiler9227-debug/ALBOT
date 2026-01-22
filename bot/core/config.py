@@ -86,6 +86,9 @@ class CacheSettings(EnvBaseSettings):
 class PaymentSettings(EnvBaseSettings):
     """Payment and subscription settings."""
 
+    # Telegram Payments
+    PAYMENT_TOKEN: str | None = None
+
     # Prodamus settings
     PRODAMUS_DOMAIN: str = "club-breathing.payform.ru"
     PRODAMUS_SECRET_KEY: str = "6c3d207165f51af3c0e81e305ace4ce5d18a9b73c145e5fa40697f6c113a9214"

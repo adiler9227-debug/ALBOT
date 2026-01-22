@@ -31,6 +31,9 @@ class DatabaseMiddleware(BaseMiddleware):
         Returns:
             Handler result
         """
+        if "session" in data:
+            return await handler(event, data)
+
         try:
             async with sessionmaker() as session:
                 data["session"] = session
