@@ -23,6 +23,9 @@ from aiogram.types import ErrorEvent
 from loguru import logger
 from redis.asyncio import Redis
 
+from alembic import command
+from alembic.config import Config
+
 from bot.core.config import settings
 from bot.core.redis import RedisClient
 from bot.database import sessionmaker
