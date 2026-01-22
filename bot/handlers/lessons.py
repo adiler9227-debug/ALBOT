@@ -18,7 +18,7 @@ router = Router(name="lessons")
 
 async def send_reminder_task(bot: Bot, user_id: int, session: AsyncSession) -> None:
     """
-    Send reminder after delay if lesson not clicked.
+    Send reminder after delay if lesson not watched.
 
     Args:
         bot: Bot instance
@@ -29,9 +29,9 @@ async def send_reminder_task(bot: Bot, user_id: int, session: AsyncSession) -> N
         # Wait for configured delay
         await asyncio.sleep(settings.payment.REMINDER_DELAY_SECONDS)
 
-        # Check if lesson was clicked
+        # Check if lesson was watched
         progress = await get_lesson_progress(session, user_id)
-        if not progress or progress.lesson_clicked or progress.reminder_sent:
+        if not progress or progress.watched_free_lesson or progress.reminder_sent:
             return
 
         # Send reminder with sad cat
@@ -42,20 +42,20 @@ async def send_reminder_task(bot: Bot, user_id: int, session: AsyncSession) -> N
             else:
                 photo = FSInputFile(photo_url)
 
-            reminder_text = _(
-                "😿 {name}, gentle reminder 🤍\n\n"
-                "You haven't watched the breathing lesson yet. "
-                "Maybe you got distracted - that's normal.\n\n"
-                "Just know: this practice helps:\n"
-                "— reduce anxiety\n"
-                "— calm the flow of thoughts\n"
-                "— restore strength and energy\n\n"
-                "In it, I share a proven approach that helps you cope with anxiety on your own, "
-                "without long and expensive work with psychologists or specialists.\n\n"
-                "Only 8 minutes - and you will see what the real cause of your anxiety is "
-                "and how to work with it at any moment.\n\n"
-                "Click the button and watch the lesson right now ⬇️"
-            ).format(name="User")  # We can get from DB if needed
+            reminder_text = (
+                "😿 Нежное напоминание 🤍\n\n"
+                "Ты еще не посмотрела урок по дыханию. "
+                "Возможно отвлеклась - это нормально.\n\n"
+                "Просто знай: эта практика помогает:\n"
+                "— снизить тревожность\n"
+                "— успокоить поток мыслей\n"
+                "— восстановить силы и энергию\n\n"
+                "В нём я делюсь проверенным подходом, который помогает справиться с тревогой самостоятельно, "
+                "без долгой и дорогой работы с психологами или специалистами.\n\n"
+                "Всего 8 минут - и ты увидишь в чём настоящая причина твоей тревоги "
+                "и как с ней работать в любой момент.\n\n"
+                "Нажми на кнопку и посмотри урок прямо сейчас ⬇️"
+            )
 
             await bot.send_photo(
                 chat_id=user_id,
@@ -104,20 +104,20 @@ async def lesson_watch_handler(
     logger.info(f"Started reminder task for user {user_id}")
 
     # Send lesson text
-    lesson_text = _(
-        "I've been practicing for over 6 years and the topic of anxiety is one of the most common in my work.\n\n"
-        "As promised, I'm sending you the lesson, be sure to watch it:\n"
-        "✅ If you have been in a difficult emotional state for a long time\n"
-        "✅ If it's hard to relax even in a calm environment\n"
-        "✅ If all your energy goes into anxious experiences and spinning thoughts\n"
-        "✅ If anxiety has become a background and interferes with clear thinking\n"
-        "✅ Often feel excitement and inner trembling\n\n"
-        "And if you've already tried different ways:\n"
-        "- going to psychologists, swallowing pills (sedatives, antidepressants), "
-        "seeking support from loved ones and friends. But the anxiety doesn't let go, returns again and again.\n\n"
-        "This lesson is about another way. Through the body and breathing.\n\n"
-        "⏱ Only 8 minutes.\n"
-        "Find a quiet place, press 'play' and just follow the voice 👇"
+    lesson_text = (
+        "Я практикую уже более 6 лет и тема тревожности - одна из самых частых в моей работе.\n\n"
+        "Как и обещала, отправляю тебе урок, обязательно посмотри его:\n"
+        "✅ Если ты давно находишься в тяжелом эмоциональном состоянии\n"
+        "✅ Если сложно расслабиться даже в спокойной обстановке\n"
+        "✅ Если вся энергия уходит на тревожные переживания и крутящиеся мысли\n"
+        "✅ Если тревога стала фоном и мешает мыслить ясно\n"
+        "✅ Часто чувствуешь волнение и внутреннюю дрожь\n\n"
+        "И если ты уже пробовала разные способы:\n"
+        "- ходила к психологам, глотала таблетки (седативные, антидепрессанты), "
+        "искала поддержку у близких и друзей. Но тревога не отпускает, возвращается снова и снова.\n\n"
+        "Этот урок про другой способ. Через тело и дыхание.\n\n"
+        "⏱ Всего 8 минут.\n"
+        "Найди тихое место, нажми 'play' и просто следуй за голосом 👇"
     )
 
     await callback.message.edit_text(
@@ -128,11 +128,11 @@ async def lesson_watch_handler(
     # Send lesson video (you need to upload it first or use URL)
     # For now, just send a placeholder
     await callback.message.answer(
-        "🎥 Here's your breathing practice video:\n\n[Video would be here]",
+        "🎥 Вот твоё видео с дыхательной практикой:\n\n[Видео будет здесь]",
         reply_markup=back_to_main_keyboard(),
     )
 
-    await callback.answer("Lesson started")
+    await callback.answer("Урок начался")
 
 
 @router.callback_query(F.data == "lesson:join")
@@ -154,18 +154,18 @@ async def lesson_join_handler(
     await mark_lesson_watched(session, callback.from_user.id)
 
     # Show tariffs
-    join_text = _(
-        "🌿 Join the Breathing Club\n\n"
-        "Get access to:\n"
-        "• Daily breathing practices\n"
-        "• Kundalini yoga classes\n"
-        "• Private community chat\n"
-        "• Personal support from Alina\n\n"
-        "Choose your subscription period:"
+    join_text = (
+        "🌿 Вступить в клуб дыхания\n\n"
+        "Получи доступ к:\n"
+        "• Ежедневным дыхательным практикам\n"
+        "• Занятиям по кундалини-йоге\n"
+        "• Закрытому чату сообщества\n"
+        "• Личной поддержке от Алины\n\n"
+        "Выбери срок подписки:"
     )
 
     await callback.message.edit_text(
         text=join_text,
         reply_markup=tariffs_keyboard(),
     )
-    await callback.answer("Select tariff")
+    await callback.answer("Выбери тариф")
