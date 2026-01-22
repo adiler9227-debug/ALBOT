@@ -144,8 +144,7 @@ async def start_video_review_upload(callback: CallbackQuery, state: FSMContext) 
         "├ Какие результаты вы заметили\n"
         "└ Что вам больше всего нравится\n\n"
         "📤 Отправьте видео следующим сообщением\n\n"
-        f"🎁 После отправки вы получите промокод <b>VIDEOOTZIV</b> "
-        f"на скидку {settings.payment.VIDEO_REVIEW_DISCOUNT} ₽!"
+        f"🎁 После отправки вы получите промокод на скидку {settings.payment.VIDEO_REVIEW_DISCOUNT} ₽!"
     )
 
     await callback.message.edit_text(text)
