@@ -168,7 +168,7 @@ async def send_expiry_reminders(bot: Bot) -> None:
             query = (
                 select(SubscriptionModel)
                 .filter(
-                    SubscriptionModel.is_active == True,  # noqa: E712
+                    SubscriptionModel.is_active.is_(True),
                     SubscriptionModel.expires_at.between(target_date_start, target_date_end),
                 )
             )

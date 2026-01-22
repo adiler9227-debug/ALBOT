@@ -45,7 +45,7 @@ async def check_expiry(session: AsyncSession, user_id: int) -> bool:
     if not subscription.is_active:
         return False
 
-    return subscription.expiry_date > datetime.datetime.utcnow()
+    return subscription.expires_at > datetime.datetime.utcnow()
 
 
 async def extend_subscription(session: AsyncSession, user_id: int, days: int) -> SubscriptionModel:
@@ -64,12 +64,12 @@ async def extend_subscription(session: AsyncSession, user_id: int, days: int) ->
 
     if subscription:
         # Extend existing subscription
-        if subscription.expiry_date > datetime.datetime.utcnow():
+        if subscription.expires_at > datetime.datetime.utcnow():
             # Add to existing expiry date
-            subscription.expiry_date += datetime.timedelta(days=days)
+            subscription.expires_at += datetime.timedelta(days=days)
         else:
             # Subscription expired, start from now
-            subscription.expiry_date = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+            subscription.expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=days)
 
         subscription.tariff_days = days
         subscription.is_active = True
@@ -78,7 +78,7 @@ async def extend_subscription(session: AsyncSession, user_id: int, days: int) ->
         # Create new subscription
         subscription = SubscriptionModel(
             user_id=user_id,
-            expiry_date=datetime.datetime.utcnow() + datetime.timedelta(days=days),
+            expires_at=datetime.datetime.utcnow() + datetime.timedelta(days=days),
             tariff_days=days,
             is_active=True,
         )
@@ -90,7 +90,7 @@ async def extend_subscription(session: AsyncSession, user_id: int, days: int) ->
     return subscription
 
 
-async def get_days_left(session: AsyncSession, user_id: int) -> int:
+async def get_days_left(session: AsyncSession, user_id: int) -> int | None:
     """
     Get days left in subscription.
 
@@ -99,13 +99,16 @@ async def get_days_left(session: AsyncSession, user_id: int) -> int:
         user_id: User ID
 
     Returns:
-        Days left (0 if no subscription or expired)
+        Days left (0 if no subscription or expired), or None if no subscription found
     """
     subscription = await get_subscription(session, user_id)
-    if not subscription or not subscription.is_active:
+    if not subscription:
+        return None
+        
+    if not subscription.is_active:
         return 0
 
-    days_left = (subscription.expiry_date - datetime.datetime.utcnow()).days
+    days_left = (subscription.expires_at - datetime.datetime.utcnow()).days
     return max(0, days_left)
 
 
@@ -136,7 +139,7 @@ async def get_expired_subscriptions(session: AsyncSession) -> list[SubscriptionM
     """
     query = select(SubscriptionModel).filter(
         SubscriptionModel.is_active == True,  # noqa: E712
-        SubscriptionModel.expiry_date < datetime.datetime.utcnow(),
+        SubscriptionModel.expires_at < datetime.datetime.utcnow(),
     )
     result = await session.execute(query)
     return list(result.scalars().all())

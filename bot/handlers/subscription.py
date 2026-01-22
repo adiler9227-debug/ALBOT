@@ -81,9 +81,15 @@ async def days_left_handler(callback: CallbackQuery, session: AsyncSession) -> N
 
     logger.info(f"Checking days for user {callback.from_user.id}")
     days = await get_days_left(session, callback.from_user.id)
-    logger.info(f"User {callback.from_user.id} has {days} days")
-
-    if days > 0:
+    
+    if days is None:
+        days_text = (
+            "❌ Нет данных о подписке\n\n"
+            "Похоже, у тебя еще нет истории подписок.\n"
+            "Начни свое путешествие прямо сейчас!"
+        )
+    elif days > 0:
+        logger.info(f"User {callback.from_user.id} has {days} days")
         days_text = (
             f"📅 Статус подписки\n\n"
             f"✅ Подписка активна\n"
@@ -93,6 +99,7 @@ async def days_left_handler(callback: CallbackQuery, session: AsyncSession) -> N
         if days <= 7:
             days_text += "⚠️ Не забудь продлить подписку!"
     else:
+        logger.info(f"User {callback.from_user.id} has expired subscription")
         days_text = (
             "❌ Нет активной подписки\n\n"
             "У тебя нет активной подписки.\n"

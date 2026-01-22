@@ -22,7 +22,7 @@ class SubscriptionModel(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), unique=True)
-    expiry_date: Mapped[datetime.datetime]
+    expires_at: Mapped[datetime.datetime]
     tariff_days: Mapped[int]
     is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[created_at]
@@ -30,4 +30,4 @@ class SubscriptionModel(Base):
     # Relationships
     user: Mapped[UserModel] = relationship("UserModel", back_populates="subscription")
 
-    repr_cols = ("id", "user_id", "expiry_date", "is_active")
+    repr_cols = ("id", "user_id", "expires_at", "is_active")
