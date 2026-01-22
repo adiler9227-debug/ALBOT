@@ -7,20 +7,46 @@ from aiogram.types import CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
-from bot.keyboards.inline import back_to_account_keyboard, subscription_keyboard, tariffs_keyboard
-from bot.services import get_days_left, get_payment_history
+from bot.keyboards.inline import (
+    agreement_keyboard,
+    back_to_account_keyboard,
+    subscription_keyboard,
+    tariffs_keyboard,
+)
+from bot.services import check_agreement, get_days_left, get_payment_history
 
 router = Router(name="subscription")
 
 
 @router.callback_query(F.data == "menu:account")
-async def account_menu_handler(callback: CallbackQuery) -> None:
+async def account_menu_handler(callback: CallbackQuery, session: AsyncSession) -> None:
     """
     Show account menu.
 
     Args:
         callback: Callback query
+        session: Database session
     """
+    if not callback.from_user:
+        return
+
+    logger.info(f"🔘 Callback: {callback.data} - User {callback.from_user.id}")
+
+    # Check agreement
+    if not await check_agreement(session, callback.from_user.id):
+        logger.warning(f"⛔ User {callback.from_user.id} tried to access account without agreement")
+        agreement_text = (
+            f"👋 Привет, {callback.from_user.first_name}!\n\n"
+            "Чтобы продолжить, ознакомьтесь с документами и примите условия использования.\n\n"
+            "Нажмите на кнопки ниже 👇"
+        )
+        await callback.message.edit_text(
+            text=agreement_text,
+            reply_markup=agreement_keyboard(),
+        )
+        await callback.answer("Требуется согласие")
+        return
+
     account_text = (
         "👤 Мой аккаунт\n\n"
         "Здесь ты можешь:\n"

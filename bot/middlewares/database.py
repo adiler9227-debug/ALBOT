@@ -6,6 +6,7 @@ from typing import Any, Awaitable, Callable
 
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
+from loguru import logger
 
 from bot.database import sessionmaker
 
@@ -30,6 +31,10 @@ class DatabaseMiddleware(BaseMiddleware):
         Returns:
             Handler result
         """
-        async with sessionmaker() as session:
-            data["session"] = session
-            return await handler(event, data)
+        try:
+            async with sessionmaker() as session:
+                data["session"] = session
+                return await handler(event, data)
+        except Exception as e:
+            logger.error(f"Database error in middleware: {e}")
+            raise e

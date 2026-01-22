@@ -19,6 +19,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
+from aiogram.types import ErrorEvent
 from loguru import logger
 from redis.asyncio import Redis
 
@@ -204,6 +205,16 @@ async def on_startup(dispatcher: Dispatcher) -> None:
 # =========================
 # MAIN
 # =========================
+async def global_error_handler(event: ErrorEvent) -> None:
+    """
+    Global error handler.
+    
+    Args:
+        event: Error event
+    """
+    logger.exception(f"🚨 Unhandled error: {event.exception}")
+
+
 async def main() -> None:
     """Основная функция запуска приложения."""
     global bot, dp, runner
@@ -246,6 +257,10 @@ async def main() -> None:
         # === 4. Создание диспетчера ===
         logger.info("📡 Creating dispatcher")
         dp = Dispatcher(storage=storage)
+        
+        # Register global error handler
+        dp.errors.register(global_error_handler)
+        
         register_middlewares(dp)
         dp.include_router(get_handlers_router())
         dp.startup.register(on_startup)

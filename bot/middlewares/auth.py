@@ -6,6 +6,7 @@ from typing import Any, Awaitable, Callable
 
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, User
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.services import add_user, user_exists
@@ -35,11 +36,15 @@ class AuthMiddleware(BaseMiddleware):
         session: AsyncSession | None = data.get("session")
 
         if user and session:
-            if not await user_exists(session, user.id):
-                # Parse referrer from command argument if available
-                referrer = None
-                # You can parse referrer from start command here if needed
+            try:
+                if not await user_exists(session, user.id):
+                    logger.info(f"👤 New user detected in middleware: {user.id}")
+                    # Parse referrer from command argument if available
+                    referrer = None
+                    # You can parse referrer from start command here if needed
 
-                await add_user(session, user, referrer)
+                    await add_user(session, user, referrer)
+            except Exception as e:
+                logger.error(f"Failed to check/add user in AuthMiddleware: {e}")
 
         return await handler(event, data)

@@ -17,6 +17,7 @@ def main_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🫁 Посмотреть урок по дыханию", callback_data="lesson:watch")],
         [InlineKeyboardButton(text="🌿 Вступить в клуб дыхания", callback_data="lesson:join")],
         [InlineKeyboardButton(text="👤 Мой аккаунт", callback_data="menu:account")],
+        [InlineKeyboardButton(text="📄 Документы", callback_data="menu:documents")],
         [InlineKeyboardButton(text="🎁 Бонусы", callback_data="bonuses")],
         [InlineKeyboardButton(text="ℹ️ Информация", callback_data="menu:info")],
     ]
