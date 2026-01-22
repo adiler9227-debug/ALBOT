@@ -130,6 +130,7 @@ class PaymentSettings(EnvBaseSettings):
     REMINDER_BEFORE_EXPIRY_DAYS: int = 3  # 3 days before expiry
 
     SAD_CAT_PHOTO_URL: str = "https://i.imgur.com/sad_cat.jpg"
+    LESSON_VIDEO_URL: str | None = None  # URL or File ID of the lesson video
 
 
 class AnalyticsSettings(EnvBaseSettings):
