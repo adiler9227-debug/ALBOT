@@ -16,7 +16,7 @@ async def create_payment_record(
     user_id: int,
     amount: int,
     currency: str,
-    tariff_days: int,
+    subscription_days: int,
     provider_payment_charge_id: str | None = None,
 ) -> PaymentModel:
     """
@@ -27,7 +27,7 @@ async def create_payment_record(
         user_id: User ID
         amount: Payment amount in kopecks/cents
         currency: Currency code (RUB, USD, etc.)
-        tariff_days: Number of days in tariff
+        subscription_days: Number of days in subscription
         provider_payment_charge_id: Provider payment charge ID
 
     Returns:
@@ -37,7 +37,7 @@ async def create_payment_record(
         user_id=user_id,
         amount=amount,
         currency=currency,
-        tariff_days=tariff_days,
+        subscription_days=subscription_days,
         payment_date=datetime.datetime.utcnow(),
         provider_payment_charge_id=provider_payment_charge_id,
     )

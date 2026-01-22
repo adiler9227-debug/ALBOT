@@ -20,6 +20,7 @@ async def account_menu_handler(callback: CallbackQuery) -> None:
     Args:
         callback: Callback query
     """
+    logger.info(f"🔘 Callback: {callback.data} | User: {callback.from_user.id if callback.from_user else 'unknown'}")
     account_text = (
         "👤 Мой аккаунт\n\n"
         "Здесь ты можешь:\n"
@@ -47,6 +48,7 @@ async def days_left_handler(callback: CallbackQuery, session: AsyncSession) -> N
     if not callback.from_user:
         return
 
+    logger.info(f"🔘 Callback: {callback.data} | User: {callback.from_user.id}")
     days = await get_days_left(session, callback.from_user.id)
 
     if days > 0:
@@ -84,6 +86,7 @@ async def payment_history_handler(callback: CallbackQuery, session: AsyncSession
     if not callback.from_user:
         return
 
+    logger.info(f"🔘 Callback: {callback.data} | User: {callback.from_user.id}")
     payments = await get_payment_history(session, callback.from_user.id, limit=10)
 
     if payments:
@@ -92,7 +95,7 @@ async def payment_history_handler(callback: CallbackQuery, session: AsyncSession
             date_str = payment.payment_date.strftime("%d.%m.%Y %H:%M")
             amount_str = f"{payment.amount // 100:.2f}"
             history_text += (
-                f"• {date_str} - {amount_str} {payment.currency} ({payment.tariff_days} дней)\n"
+                f"• {date_str} - {amount_str} {payment.currency} ({payment.subscription_days} дней)\n"
             )
     else:
         history_text = (
@@ -115,6 +118,7 @@ async def buy_subscription_handler(callback: CallbackQuery) -> None:
     Args:
         callback: Callback query
     """
+    logger.info(f"🔘 Callback: {callback.data} | User: {callback.from_user.id if callback.from_user else 'unknown'}")
     tariff_text = (
         "💳 Купить подписку\n\n"
         "Выбери срок подписки:\n"
