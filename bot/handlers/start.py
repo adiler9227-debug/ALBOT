@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from aiogram import Router
+from aiogram import F, Router
 from aiogram.filters import CommandStart
-from aiogram.types import Message
+from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +12,14 @@ from bot.keyboards.inline import agreement_keyboard, main_keyboard
 from bot.services import add_user, check_agreement, user_exists
 
 router = Router(name="start")
+
+
+def get_menu_button() -> ReplyKeyboardMarkup:
+    """Create persistent menu button."""
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="📱 Главное меню")]],
+        resize_keyboard=True,
+    )
 
 
 @router.message(CommandStart())
@@ -73,14 +81,20 @@ async def start_handler(message: Message, session: AsyncSession) -> None:
             await message.answer_photo(
                 photo="AgACAgIAAxkBAAEaQolpcZlg40EexVxrocHGW3g2R-hElgACiw1rG8H-kEviZM0QjXvNLQEAAwIAA3gAAzgE",
                 caption=agreement_text,
-                reply_markup=agreement_keyboard(),
+                reply_markup=get_menu_button(),
             )
         except Exception:
             # Fallback if photo fails
             await message.answer(
                 text=agreement_text,
-                reply_markup=agreement_keyboard(),
+                reply_markup=get_menu_button(),
             )
+
+        # Send inline keyboard separately
+        await message.answer(
+            "Для продолжения ознакомьтесь с документами:",
+            reply_markup=agreement_keyboard(),
+        )
     else:
         # Show main menu
         welcome_text = (
@@ -90,5 +104,20 @@ async def start_handler(message: Message, session: AsyncSession) -> None:
 
         await message.answer(
             text=welcome_text,
+            reply_markup=get_menu_button(),
+        )
+        await message.answer(
+            "Выберите действие:",
             reply_markup=main_keyboard(),
         )
+
+
+@router.message(F.text == "📱 Главное меню")
+async def menu_button_handler(message: Message, session: AsyncSession) -> None:
+    """Handle menu button press."""
+    logger.info(f"🔘 Menu button pressed by user {message.from_user.id if message.from_user else 'unknown'}")
+
+    await message.answer(
+        "Выберите действие:",
+        reply_markup=main_keyboard(),
+    )
