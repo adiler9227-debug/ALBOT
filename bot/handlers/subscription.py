@@ -5,6 +5,7 @@ from __future__ import annotations
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
+from loguru import logger
 
 from bot.keyboards.inline import back_to_account_keyboard, subscription_keyboard, tariffs_keyboard
 from bot.services import get_days_left, get_payment_history
