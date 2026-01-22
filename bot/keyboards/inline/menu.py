@@ -26,6 +26,24 @@ def main_keyboard() -> InlineKeyboardMarkup:
     return keyboard.as_markup()
 
 
+def documents_keyboard() -> InlineKeyboardMarkup:
+    """
+    Create documents menu keyboard.
+
+    Returns:
+        InlineKeyboardMarkup
+    """
+    buttons = [
+        [InlineKeyboardButton(text="📄 Оферта", callback_data="agreement:offer")],
+        [InlineKeyboardButton(text="🔒 Политика конфиденциальности", callback_data="agreement:privacy")],
+        [InlineKeyboardButton(text="📋 Согласие на обработку данных", callback_data="agreement:consent")],
+        [InlineKeyboardButton(text="« Назад в меню", callback_data="menu:main")],
+    ]
+
+    keyboard = InlineKeyboardBuilder(markup=buttons)
+    return keyboard.as_markup()
+
+
 def back_to_main_keyboard() -> InlineKeyboardMarkup:
     """
     Create back to main menu keyboard.

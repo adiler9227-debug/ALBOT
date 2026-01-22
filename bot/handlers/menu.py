@@ -43,14 +43,20 @@ async def main_menu_handler(callback: CallbackQuery, session: AsyncSession) -> N
         return
 
     menu_text = (
-        "🏠 Главное меню\n\n"
-        "Выберите действие:"
+        f"🏠 Главное меню\n\n"
+        f"Рад видеть тебя, {callback.from_user.first_name}! 👋\n\n"
+        "Выберите интересующий раздел ниже:"
     )
 
-    await callback.message.edit_text(
-        text=menu_text,
-        reply_markup=main_keyboard(),
-    )
+    try:
+        await callback.message.edit_text(
+            text=menu_text,
+            reply_markup=main_keyboard(),
+        )
+    except Exception:
+        # Ignore errors if message not modified
+        pass
+    
     await callback.answer()
 
 
@@ -62,8 +68,9 @@ async def documents_handler(callback: CallbackQuery) -> None:
     Args:
         callback: Callback query
     """
-    from bot.keyboards.inline import back_to_main_keyboard
-    
+    from bot.keyboards.inline import documents_keyboard
+    from aiogram.exceptions import TelegramBadRequest
+
     logger.info(f"🔘 User {callback.from_user.id} requested documents")
 
     documents_text = (
@@ -74,29 +81,15 @@ async def documents_handler(callback: CallbackQuery) -> None:
         "3. Согласие на рассылку — условия получения сообщений"
     )
 
-    # Reusing agreement keyboard but maybe we need a dedicated one? 
-    # The user said "Документы недоступны. Добавить кнопку '📄 Документы' в меню".
-    # And "Keyboards (для кнопок 'Документы'): bot/keyboards/inline/menu.py".
-    # I should probably just show the text and the agreement buttons?
-    # Or maybe create a new keyboard with buttons to show each doc?
-    # The `agreement_keyboard` has buttons for Offer, Privacy, Consent + "I Agree".
-    # If the user is already inside, "I Agree" is weird.
-    # But for now, I'll use a simple list or reuse the agreement keyboard without the "Agree" button if possible.
-    # Let's check `bot/keyboards/inline/agreement.py`.
-    
-    from bot.keyboards.inline import agreement_keyboard
-    # Since I cannot see agreement_keyboard source right now (I read agreement.py handler, not keyboard file), 
-    # I will assume I can use it.
-    # Actually, I should probably check `bot/keyboards/inline/agreement.py` to be sure.
-    # But for speed, I'll use `agreement_keyboard` and if it has "Agree" button, it's okay-ish.
-    # Better: create a keyboard with just docs.
-    
-    # Let's define a local keyboard builder or just use agreement_keyboard for now as it contains the docs.
-    
-    await callback.message.edit_text(
-        text=documents_text,
-        reply_markup=agreement_keyboard(), 
-    )
+    try:
+        await callback.message.edit_text(
+            text=documents_text,
+            reply_markup=documents_keyboard(),
+        )
+    except TelegramBadRequest:
+        # Ignore if message is not modified
+        pass
+        
     await callback.answer()
 
 
@@ -124,8 +117,12 @@ async def info_handler(callback: CallbackQuery) -> None:
         "Присоединяйся! 🌿"
     )
 
-    await callback.message.edit_text(
-        text=info_text,
-        reply_markup=back_to_main_keyboard(),
-    )
+    try:
+        await callback.message.edit_text(
+            text=info_text,
+            reply_markup=back_to_main_keyboard(),
+        )
+    except Exception:
+        pass
+        
     await callback.answer()

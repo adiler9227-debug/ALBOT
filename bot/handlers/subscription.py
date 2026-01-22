@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
+from aiogram.exceptions import TelegramBadRequest
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
@@ -55,10 +56,14 @@ async def account_menu_handler(callback: CallbackQuery, session: AsyncSession) -
         "• Купить или продлить подписку"
     )
 
-    await callback.message.edit_text(
-        text=account_text,
-        reply_markup=subscription_keyboard(),
-    )
+    try:
+        await callback.message.edit_text(
+            text=account_text,
+            reply_markup=subscription_keyboard(),
+        )
+    except TelegramBadRequest:
+        pass
+        
     await callback.answer()
 
 
@@ -74,7 +79,9 @@ async def days_left_handler(callback: CallbackQuery, session: AsyncSession) -> N
     if not callback.from_user:
         return
 
+    logger.info(f"Checking days for user {callback.from_user.id}")
     days = await get_days_left(session, callback.from_user.id)
+    logger.info(f"User {callback.from_user.id} has {days} days")
 
     if days > 0:
         days_text = (
@@ -92,10 +99,14 @@ async def days_left_handler(callback: CallbackQuery, session: AsyncSession) -> N
             "Купи подписку, чтобы получить доступ ко всем материалам!"
         )
 
-    await callback.message.edit_text(
-        text=days_text,
-        reply_markup=back_to_account_keyboard(),
-    )
+    try:
+        await callback.message.edit_text(
+            text=days_text,
+            reply_markup=back_to_account_keyboard(),
+        )
+    except TelegramBadRequest:
+        pass
+        
     await callback.answer()
 
 
@@ -111,7 +122,9 @@ async def payment_history_handler(callback: CallbackQuery, session: AsyncSession
     if not callback.from_user:
         return
 
+    logger.info(f"Checking history for user {callback.from_user.id}")
     payments = await get_payment_history(session, callback.from_user.id, limit=10)
+    logger.info(f"User {callback.from_user.id} has {len(payments) if payments else 0} payments")
 
     if payments:
         history_text = "💰 История платежей\n\n"
@@ -127,10 +140,14 @@ async def payment_history_handler(callback: CallbackQuery, session: AsyncSession
             "Купи первую подписку, чтобы начать обучение!"
         )
 
-    await callback.message.edit_text(
-        text=history_text,
-        reply_markup=back_to_account_keyboard(),
-    )
+    try:
+        await callback.message.edit_text(
+            text=history_text,
+            reply_markup=back_to_account_keyboard(),
+        )
+    except TelegramBadRequest:
+        pass
+        
     await callback.answer()
 
 
@@ -148,8 +165,12 @@ async def buy_subscription_handler(callback: CallbackQuery) -> None:
         "Чем дольше срок - тем выгоднее! 🎁"
     )
 
-    await callback.message.edit_text(
-        text=tariff_text,
-        reply_markup=tariffs_keyboard(),
-    )
+    try:
+        await callback.message.edit_text(
+            text=tariff_text,
+            reply_markup=tariffs_keyboard(),
+        )
+    except TelegramBadRequest:
+        pass
+        
     await callback.answer()

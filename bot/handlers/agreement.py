@@ -3,14 +3,57 @@
 from __future__ import annotations
 
 from aiogram import F, Router
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.exceptions import TelegramBadRequest
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.keyboards.inline import main_keyboard
-from bot.services import set_agreement
+from bot.keyboards.inline import main_keyboard, agreement_keyboard
+from bot.services import set_agreement, check_agreement
 
 router = Router(name="agreement")
+
+
+async def _show_document(callback: CallbackQuery, session: AsyncSession, text: str) -> None:
+    """Helper to show document with back button."""
+    is_agreed = await check_agreement(session, callback.from_user.id)
+    
+    back_callback = "menu:documents" if is_agreed else "agreement:back"
+    
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="« Назад", callback_data=back_callback))
+    
+    try:
+        await callback.message.edit_text(
+            text=text,
+            reply_markup=builder.as_markup(),
+            parse_mode="HTML"
+        )
+    except TelegramBadRequest:
+        pass
+    
+    await callback.answer()
+
+
+@router.callback_query(F.data == "agreement:back")
+async def agreement_back_handler(callback: CallbackQuery) -> None:
+    """Handle back to agreement."""
+    agreement_text = (
+        f"👋 Привет, {callback.from_user.first_name}!\n\n"
+        "Чтобы продолжить, ознакомьтесь с документами и примите условия использования.\n\n"
+        "Нажмите на кнопки ниже 👇"
+    )
+    
+    try:
+        await callback.message.edit_text(
+            text=agreement_text,
+            reply_markup=agreement_keyboard(),
+        )
+    except TelegramBadRequest:
+        pass
+    
+    await callback.answer()
 
 
 @router.callback_query(F.data == "agreement:agree")
@@ -56,10 +99,9 @@ async def agreement_agree_handler(callback: CallbackQuery, session: AsyncSession
 
 
 @router.callback_query(F.data == "agreement:offer")
-async def show_offer(callback: CallbackQuery) -> None:
+async def show_offer(callback: CallbackQuery, session: AsyncSession) -> None:
     """Show offer document."""
     logger.info(f"🔘 Showing offer to user {callback.from_user.id}")
-    await callback.answer()
     
     offer_text = """📄 <b>ПУБЛИЧНАЯ ОФЕРТА</b>
 на оказание информационно-консультационных услуг
@@ -129,14 +171,13 @@ async def show_offer(callback: CallbackQuery) -> None:
 ИНН: 772092659510
 Email: bazhenovaam.ip@gmail.com"""
     
-    await callback.message.answer(offer_text, parse_mode="HTML")
+    await _show_document(callback, session, offer_text)
 
 
 @router.callback_query(F.data == "agreement:privacy")
-async def show_privacy(callback: CallbackQuery) -> None:
+async def show_privacy(callback: CallbackQuery, session: AsyncSession) -> None:
     """Show privacy policy."""
     logger.info(f"🔘 Showing privacy policy to user {callback.from_user.id}")
-    await callback.answer()
     
     privacy_text = """🔒 <b>ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ</b>
 в отношении обработки персональных данных
@@ -192,14 +233,13 @@ async def show_privacy(callback: CallbackQuery) -> None:
 По вопросам обработки данных:
 bazhenovaam.ip@gmail.com"""
     
-    await callback.message.answer(privacy_text, parse_mode="HTML")
+    await _show_document(callback, session, privacy_text)
 
 
 @router.callback_query(F.data == "agreement:consent")
-async def show_consent(callback: CallbackQuery) -> None:
+async def show_consent(callback: CallbackQuery, session: AsyncSession) -> None:
     """Show consent document."""
     logger.info(f"🔘 Showing consent to user {callback.from_user.id}")
-    await callback.answer()
     
     consent_text = """📋 <b>СОГЛАСИЕ</b>
 на обработку персональных данных
@@ -241,4 +281,4 @@ async def show_consent(callback: CallbackQuery) -> None:
 ИНН: 772092659510
 Email: bazhenovaam.ip@gmail.com"""
     
-    await callback.message.answer(consent_text, parse_mode="HTML")
+    await _show_document(callback, session, consent_text)
