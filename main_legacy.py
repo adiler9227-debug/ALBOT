@@ -1,0 +1,84 @@
+import asyncio
+import logging
+import os
+from aiohttp import web
+from aiogram import Bot, Dispatcher
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+
+from config import BOT_TOKEN
+from handlers import client, payments
+from database.db import init_db
+from scheduler import setup_scheduler
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+bot = Bot(token=BOT_TOKEN)
+storage = MemoryStorage()
+dp = Dispatcher(storage=storage)
+
+# Webhook настройки
+WEBHOOK_PATH = f"/webhook/{BOT_TOKEN}"
+WEBHOOK_URL = os.getenv("RAILWAY_PUBLIC_DOMAIN", "") + WEBHOOK_PATH if os.getenv("RAILWAY_PUBLIC_DOMAIN") else None
+WEB_SERVER_HOST = "0.0.0.0"
+WEB_SERVER_PORT = int(os.getenv("PORT", 8080))
+
+async def on_startup():
+    """Действия при запуске"""
+    # Инициализация БД
+    await init_db()
+    logger.info("База данных инициализирована")
+
+    # Подключаем роутеры
+    dp.include_router(client.router)
+    dp.include_router(payments.router)
+    logger.info("Роутеры подключены")
+
+    # Настраиваем и запускаем планировщик
+    scheduler = setup_scheduler(bot)
+    scheduler.start()
+    logger.info("Планировщик запущен")
+
+    # Устанавливаем webhook если есть домен
+    if WEBHOOK_URL:
+        await bot.set_webhook(
+            url=WEBHOOK_URL,
+            drop_pending_updates=True
+        )
+        logger.info(f"Webhook установлен: {WEBHOOK_URL}")
+    else:
+        logger.warning("RAILWAY_PUBLIC_DOMAIN не найден, webhook не установлен")
+
+    logger.info("Бот запущен!")
+
+async def on_shutdown():
+    """Действия при остановке"""
+    await bot.delete_webhook()
+    await bot.session.close()
+    logger.info("Бот остановлен")
+
+def main():
+    """Основная функция"""
+    # Создаем веб-приложение
+    app = web.Application()
+
+    # Настройка webhook
+    webhook_requests_handler = SimpleRequestHandler(
+        dispatcher=dp,
+        bot=bot,
+    )
+    webhook_requests_handler.register(app, path=WEBHOOK_PATH)
+
+    # Настройка приложения
+    setup_application(app, dp, bot=bot)
+
+    # Колбэки запуска/остановки
+    app.on_startup.append(lambda app: on_startup())
+    app.on_shutdown.append(lambda app: on_shutdown())
+
+    # Запуск веб-сервера
+    web.run_app(app, host=WEB_SERVER_HOST, port=WEB_SERVER_PORT)
+
+if __name__ == '__main__':
+    main()

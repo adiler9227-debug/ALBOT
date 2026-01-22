@@ -77,19 +77,11 @@ async def handle_prodamus_webhook(
             logger.error("Missing order_id in webhook")
             return web.Response(status=400, text="Missing order_id")
 
-        # Parse order_id format: "user_{user_id}_days_{days}_{timestamp}[_promo_{code}]"
+        # Parse order_id format: "user_{user_id}_days_{days}"
         try:
             parts = order_id.split("_")
             user_id = int(parts[1])
             subscription_days = int(parts[3])
-            
-            # Check for promo
-            promo_code = None
-            if "promo" in parts:
-                promo_index = parts.index("promo")
-                if len(parts) > promo_index + 1:
-                    promo_code = parts[promo_index + 1]
-                    
         except (IndexError, ValueError):
             logger.error(f"Invalid order_id format: {order_id}")
             return web.Response(status=400, text="Invalid order_id format")
@@ -104,34 +96,8 @@ async def handle_prodamus_webhook(
                 # Update payment status
                 payment = await update_payment_status(session, payment_id, "success")
 
-                if not payment:
-                    # Create payment if not exists (e.g. if we didn't save pending state)
-                    try:
-                        amount = float(data_dict.get("sum", 0))
-                    except (ValueError, TypeError):
-                        amount = 0
-                        
-                    payment = await create_payment(
-                        session=session,
-                        user_id=user_id,
-                        amount=int(amount),
-                        subscription_days=subscription_days,
-                        payment_id=payment_id,
-                        status="success"
-                    )
-
                 # Extend subscription
                 await extend_subscription(session, user_id, subscription_days)
-
-                # Record promocode usage if present
-                if promo_code:
-                    from sqlalchemy import select
-                    promo_query = select(PromocodeModel).filter_by(code=promo_code)
-                    promo_result = await session.execute(promo_query)
-                    promocode = promo_result.scalar_one_or_none()
-                    
-                    if promocode:
-                        await record_promocode_usage(session, user_id, promocode)
 
                 # Check if this is a referral - give bonus to referrer
                 await process_referral_bonus(session, user_id)
@@ -174,14 +140,13 @@ async def handle_prodamus_webhook(
         return web.Response(status=500, text="Internal server error")
 
 
-async def process_referral_bonus(session: AsyncSession, referred_user_id: int, bot: Bot) -> None:
+async def process_referral_bonus(session: AsyncSession, referred_user_id: int) -> None:
     """
     Process referral bonus - give +30 days to referrer when referred user pays.
 
     Args:
         session: Database session
         referred_user_id: User who just paid
-        bot: Bot instance
     """
     from sqlalchemy import select
 
@@ -210,20 +175,7 @@ async def process_referral_bonus(session: AsyncSession, referred_user_id: int, b
 
     logger.info(f"Gave referral bonus to user {referrer_id}: +{bonus_days} days")
 
-    # Notify referrer
-    try:
-        await bot.send_message(
-            chat_id=referrer_id,
-            text=(
-                f"🎁 <b>Поздравляем!</b>\n\n"
-                f"Твой друг оплатил подписку!\n"
-                f"Тебе начислено <b>+{bonus_days} дней</b> бонусной подписки.\n\n"
-                f"Продолжай приглашать друзей и получай больше бонусов!"
-            )
-        )
-        logger.info(f"Sent referral bonus notification to user {referrer_id}")
-    except Exception as e:
-        logger.error(f"Failed to send referral bonus notification to user {referrer_id}: {e}")
+    # Notify referrer (requires bot instance, skip for now)
 
 
 async def health_check(request: web.Request) -> web.Response:

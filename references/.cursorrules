@@ -1,0 +1,168 @@
+# ============================================
+# ПРАВИЛА ДЛЯ AI-РЕДАКТОРА (Trae/Cursor/Copilot)
+# Проект: ALBOT - Телеграм бот клуба дыхания
+# ============================================
+
+## 🎯 ОСНОВНОЙ СТЕК
+- Python 3.12+
+- aiogram 3.x (НЕ aiogram 2!)
+- SQLAlchemy 2.0 + asyncpg
+- PostgreSQL
+- Redis (опционально, для FSM storage)
+- loguru для логирования
+- Railway для деплоя
+
+## 📁 СТРУКТУРА ПРОЕКТА
+```
+bot/
+├── handlers/          # Обработчики команд и callback
+├── keyboards/inline/  # Inline клавиатуры
+├── middlewares/       # Middleware (DB, Auth)
+├── services/          # Бизнес-логика
+├── database/models/   # SQLAlchemy модели
+├── core/config.py     # Настройки (Pydantic)
+└── __main__.py        # Точка входа
+```
+
+## 📚 ОБРАЗЦЫ ДЛЯ КОПИРОВАНИЯ (папка references/)
+
+### references/aiogram-sqlalchemy/
+- Простая структура handlers
+- Database middleware
+- SQLAlchemy модели
+- **ИСПОЛЬЗУЙ ДЛЯ:** базовой архитектуры, middleware, моделей
+
+### references/hackathon-app/
+- FastAPI + aiogram интеграция
+- Redis операции
+- DAO паттерн для БД
+- **ИСПОЛЬЗУЙ ДЛЯ:** webhook, Redis кэширования, API
+
+### references/aiogram-bot-template/
+- Filters (is_admin, is_banned)
+- Services layer
+- Keyboards организация
+- **ИСПОЛЬЗУЙ ДЛЯ:** фильтров, сервисов, расширенных keyboards
+
+## ✅ ОБЯЗАТЕЛЬНЫЕ ПРАВИЛА
+
+### Логирование
+```python
+# ВСЕГДА импортируй logger в начале файла
+from loguru import logger
+
+# Логируй важные события
+logger.info(f"🔘 Callback: {callback.data} | User: {callback.from_user.id}")
+logger.error(f"❌ Error: {e}")
+```
+
+### Callback handlers
+```python
+@router.callback_query(F.data == "some:action")
+async def handler(callback: CallbackQuery, session: AsyncSession) -> None:
+    logger.info(f"🔘 Callback: {callback.data}")
+    
+    # ... логика ...
+    
+    await callback.answer()  # ВСЕГДА в конце!
+```
+
+### Middleware
+```python
+# Database middleware - смотри references/aiogram-sqlalchemy/app/middlewares/
+# Auth middleware - смотри references/aiogram-bot-template/src/bot/middlewares/
+```
+
+## 🚫 ЗАПРЕТЫ
+
+1. **НЕ смешивай aiogram 2 и aiogram 3 синтаксис**
+   - aiogram 2: `@dp.callback_query_handler()`
+   - aiogram 3: `@router.callback_query()`
+
+2. **НЕ используй print()** — только logger
+
+3. **НЕ удаляй healthcheck endpoint** — Railway его требует
+
+4. **НЕ меняй секреты:**
+   - BOT_TOKEN
+   - DATABASE_URL
+   - PRODAMUS_SECRET_KEY
+   - Реквизиты ИП (ИНН, ОГРНИП)
+
+5. **НЕ трогай логику верификации подписи Prodamus**
+
+## 🚀 RAILWAY СПЕЦИФИКА
+
+### Healthcheck (ОБЯЗАТЕЛЕН!)
+```python
+# Web server должен стартовать ДО polling
+# Endpoint /health должен отвечать 200 OK
+async def health_handler(request):
+    return web.Response(text="OK", status=200)
+```
+
+### Один инстанс
+- Replicas = 1 (иначе TelegramConflictError)
+- Не запускать локально и на сервере одновременно
+
+## 💳 ПЛАТЕЖИ (Prodamus)
+
+- Webhook endpoint: `/prodamus-webhook`
+- Верификация подписи: HMAC-SHA256
+- **Смотри:** `bot/handlers/prodamus_webhook.py`
+- **НЕ МЕНЯТЬ** логику проверки подписи!
+
+## 📝 ПОЛЕЗНЫЕ ПАТТЕРНЫ
+
+### Keyboard с кнопкой назад
+```python
+# Смотри references/aiogram-sqlalchemy/app/keyboards/
+def back_to_menu_keyboard() -> InlineKeyboardMarkup:
+    buttons = [
+        [InlineKeyboardButton(text="« Назад", callback_data="menu:main")]
+    ]
+    return InlineKeyboardBuilder(markup=buttons).as_markup()
+```
+
+### Service layer
+```python
+# Смотри references/aiogram-bot-template/src/infrastructure/services/
+async def get_user(session: AsyncSession, user_id: int) -> User | None:
+    result = await session.execute(
+        select(UserModel).where(UserModel.telegram_id == user_id)
+    )
+    return result.scalar_one_or_none()
+```
+
+### Database model
+```python
+# Смотри references/aiogram-sqlalchemy/database/models/
+class UserModel(Base):
+    __tablename__ = "users"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, index=True)
+    username: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+```
+
+## 🔍 КАК ИСКАТЬ ОБРАЗЦЫ
+
+При запросе типа "как сделать X" — сначала проверь:
+
+1. `references/aiogram-sqlalchemy/` — базовая структура
+2. `references/hackathon-app/` — Redis, API, webhook
+3. `references/aiogram-bot-template/` — filters, services, keyboards
+
+## ⚡ БЫСТРЫЕ КОМАНДЫ
+
+```bash
+# Применить миграции
+alembic upgrade head
+
+# Создать миграцию
+alembic revision --autogenerate -m "description"
+
+# Запуск локально
+python -m bot
+```

@@ -76,12 +76,13 @@ async def show_tariffs_handler(callback: CallbackQuery) -> None:
 
 
 @router.callback_query(F.data.startswith("tariff:"))
-async def process_tariff_selection(callback: CallbackQuery) -> None:
+async def process_tariff_selection(callback: CallbackQuery, session: AsyncSession) -> None:
     """
     Process tariff selection.
 
     Args:
         callback: Callback query
+        session: Database session
     """
     tariff_id = callback.data.split(":")[1]
     tariff = TARIFFS.get(tariff_id)
@@ -90,17 +91,39 @@ async def process_tariff_selection(callback: CallbackQuery) -> None:
         await callback.answer("Тариф не найден", show_alert=True)
         return
 
+    # Check for video review and apply discount
+    final_price = tariff['price']
+    promo_code = None
+
+    # Check if user has video review
+    video_query = select(VideoReviewModel).filter_by(user_id=callback.from_user.id)
+    video_result = await session.execute(video_query)
+    if video_result.scalar_one_or_none():
+        # Try to apply VIDEOOTZIV promo
+        discounted_price, promocode = await apply_promocode(
+            session=session,
+            user_id=callback.from_user.id,
+            code=settings.payment.VIDEO_REVIEW_PROMO,
+            base_amount=tariff['price']
+        )
+        
+        if promocode and discounted_price < tariff['price']:
+            final_price = discounted_price
+            promo_code = promocode.code
+
     # Generate unique order ID
-    # Format: user_{user_id}_days_{days}_{timestamp}
-    # We append timestamp to ensure uniqueness if user clicks multiple times
-    # The webhook handler will parse: user_id=parts[1], days=parts[3]
-    order_id = f"user_{callback.from_user.id}_days_{tariff['days']}_{int(time.time())}"
+    # Format: user_{user_id}_days_{days}_{timestamp}[_promo_{code}]
+    timestamp = int(time.time())
+    order_id = f"user_{callback.from_user.id}_days_{tariff['days']}_{timestamp}"
+    
+    if promo_code:
+        order_id += f"_promo_{promo_code}"
 
     # Generate payment URL
     payment_url = generate_payment_url(
         order_id=order_id,
-        amount=tariff['price'],
-        customer_email=None,  # Prodamus will ask for email if not provided
+        amount=final_price,
+        customer_email=None,
         products=tariff['title']
     )
 
@@ -108,7 +131,7 @@ async def process_tariff_selection(callback: CallbackQuery) -> None:
     builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(
-            text=f"💳 Оплатить {tariff['price']} ₽",
+            text=f"💳 Оплатить {final_price} ₽",
             url=payment_url
         )
     )
@@ -119,13 +142,23 @@ async def process_tariff_selection(callback: CallbackQuery) -> None:
         )
     )
 
+    text = (
+        f"💳 <b>Оплата тарифа «{tariff['title']}»</b>\n\n"
+        f"Стоимость: <b>{final_price} ₽</b>"
+    )
+    
+    if promo_code:
+        text += f" <s>{tariff['price']} ₽</s>\n🎁 Промокод <b>{promo_code}</b> применен!"
+    else:
+        text += "\n"
+
+    text += (
+        f"Срок действия: <b>{tariff['days']} дней</b>\n\n"
+        f"Для оплаты перейдите по кнопке ниже 👇"
+    )
+
     await callback.message.edit_text(
-        text=(
-            f"💳 <b>Оплата тарифа «{tariff['title']}»</b>\n\n"
-            f"Стоимость: <b>{tariff['price']} ₽</b>\n"
-            f"Срок действия: <b>{tariff['days']} дней</b>\n\n"
-            f"Для оплаты перейдите по кнопке ниже 👇"
-        ),
+        text=text,
         reply_markup=builder.as_markup()
     )
     await callback.answer()

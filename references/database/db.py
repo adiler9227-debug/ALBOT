@@ -83,9 +83,9 @@ async def update_expiry_date(user_id: int, days: int):
     async with aiosqlite.connect(DB_PATH) as db:
         user = await get_user(user_id)
 
-        if user and user['expires_at']:
+        if user and user['expiry_date']:
             # Если подписка еще активна, продлеваем
-            current_end = datetime.fromisoformat(user['expires_at'])
+            current_end = datetime.fromisoformat(user['expiry_date'])
             if current_end > datetime.now():
                 new_end = current_end + timedelta(days=days)
             else:
@@ -95,7 +95,7 @@ async def update_expiry_date(user_id: int, days: int):
             new_end = datetime.now() + timedelta(days=days)
 
         await db.execute(
-            'UPDATE users SET expires_at = ? WHERE user_id = ?',
+            'UPDATE users SET expiry_date = ? WHERE user_id = ?',
             (new_end.isoformat(), user_id)
         )
         await db.commit()
@@ -104,10 +104,10 @@ async def update_expiry_date(user_id: int, days: int):
 async def get_days_left(user_id: int) -> int:
     """Получить количество оставшихся дней подписки"""
     user = await get_user(user_id)
-    if not user or not user['expires_at']:
+    if not user or not user['expiry_date']:
         return 0
 
-    end_date = datetime.fromisoformat(user['expires_at'])
+    end_date = datetime.fromisoformat(user['expiry_date'])
     days_left = (end_date - datetime.now()).days
     return max(0, days_left)
 
@@ -137,7 +137,7 @@ async def get_expired_users() -> List[int]:
         db.row_factory = aiosqlite.Row
         now = datetime.now().isoformat()
         async with db.execute(
-            'SELECT user_id FROM users WHERE expires_at IS NOT NULL AND expires_at < ?',
+            'SELECT user_id FROM users WHERE expiry_date IS NOT NULL AND expiry_date < ?',
             (now,)
         ) as cursor:
             rows = await cursor.fetchall()

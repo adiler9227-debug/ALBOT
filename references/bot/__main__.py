@@ -19,17 +19,14 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
-from aiogram.types import ErrorEvent
 from loguru import logger
 from redis.asyncio import Redis
 
 from bot.core.config import settings
-from bot.core.redis import RedisClient
 from bot.database import sessionmaker
 from bot.handlers import get_handlers_router
 from bot.handlers.prodamus_webhook import setup_webhook_handlers
 from bot.middlewares import register_middlewares
-from bot.middlewares.services import ServiceMiddleware
 from bot.scheduler import setup_scheduler
 
 # =========================
@@ -55,7 +52,6 @@ BOT_ALIVE = False
 bot: Bot | None = None
 dp: Dispatcher | None = None
 runner: web.AppRunner | None = None
-redis_client: RedisClient | None = None
 
 
 # =========================
@@ -150,7 +146,7 @@ async def shutdown(signal_name: str | None = None) -> None:
     Args:
         signal_name: Название сигнала (SIGTERM, SIGINT)
     """
-    global bot, dp, runner, redis_client
+    global bot, dp, runner
 
     logger.warning(f"🛑 {'Received ' + signal_name + ' signal. ' if signal_name else ''}Shutting down...")
 
@@ -170,15 +166,7 @@ async def shutdown(signal_name: str | None = None) -> None:
         except Exception as e:
             logger.error(f"Error closing bot: {e}")
 
-    # 3. Закрытие Redis
-    if redis_client:
-        try:
-            await redis_client.close()
-            logger.info("✅ Redis connection closed")
-        except Exception as e:
-            logger.error(f"Error closing Redis: {e}")
-
-    # 4. Остановка веб-сервера
+    # 3. Остановка веб-сервера
     if runner:
         try:
             await runner.cleanup()
@@ -201,16 +189,6 @@ async def on_startup(dispatcher: Dispatcher) -> None:
     """
     logger.info("🚀 Bot startup sequence initiated")
 
-    # Run database migrations
-    try:
-        logger.info("🔄 Running database migrations...")
-        alembic_cfg = Config("alembic.ini")
-        # Run upgrade head in thread to avoid blocking loop
-        await asyncio.to_thread(command.upgrade, alembic_cfg, "head")
-        logger.success("✅ Database migrations applied")
-    except Exception as e:
-        logger.error(f"❌ Failed to apply migrations: {e}")
-
     try:
         # Get bot from global variable (bot is already created)
         global bot
@@ -226,19 +204,9 @@ async def on_startup(dispatcher: Dispatcher) -> None:
 # =========================
 # MAIN
 # =========================
-async def global_error_handler(event: ErrorEvent) -> None:
-    """
-    Global error handler.
-    
-    Args:
-        event: Error event
-    """
-    logger.exception(f"🚨 Unhandled error: {event.exception}")
-
-
 async def main() -> None:
     """Основная функция запуска приложения."""
-    global bot, dp, runner, redis_client
+    global bot, dp, runner
 
     logger.info("=" * 60)
     logger.info("🚀 STARTING APPLICATION")
@@ -252,11 +220,11 @@ async def main() -> None:
         try:
             if settings.cache.REDIS_URL:
                 logger.info("🔄 Attempting to connect to Redis...")
-                redis_client = RedisClient(settings.cache.redis_url)
-                await redis_client.connect()
-                
-                redis_instance = redis_client.get_client()
-                storage = RedisStorage(redis=redis_instance)
+                redis = Redis.from_url(
+                    settings.cache.redis_url,
+                    decode_responses=False
+                )
+                storage = RedisStorage(redis=redis)
                 logger.success("📦 Using Redis storage")
             else:
                 logger.warning("⚠️ REDIS_URL not set")
@@ -266,7 +234,6 @@ async def main() -> None:
             logger.warning(f"⚠️ Failed to connect to Redis: {e}")
             logger.info("📦 Falling back to Memory storage")
             storage = MemoryStorage()
-            redis_client = None
 
         # === 3. Создание бота ===
         logger.info("🤖 Creating bot instance")
@@ -274,25 +241,25 @@ async def main() -> None:
             token=settings.bot.BOT_TOKEN,
             default=DefaultBotProperties(parse_mode=ParseMode.HTML),
         )
+        logger.success("✅ Bot instance created")
 
         # === 4. Создание диспетчера ===
-        logger.info("⚙️ Creating dispatcher")
+        logger.info("📡 Creating dispatcher")
         dp = Dispatcher(storage=storage)
-
-        # Register global error handler
-        dp.errors.register(global_error_handler)
-
-        # Register middlewares
         register_middlewares(dp)
-        
-        # Register ServiceMiddleware if Redis is available
-        if redis_client:
-            dp.update.middleware(ServiceMiddleware(services={"redis": redis_client.get_client()}))
-
-        # Register routers
         dp.include_router(get_handlers_router())
         dp.startup.register(on_startup)
-        logger.success("✅ Dispatcher configured")
+
+        # === 4.1. Глобальный error handler ===
+        @dp.errors()
+        async def global_error_handler(event, exception):
+            """Handle all unhandled errors gracefully."""
+            logger.error(f"🚨 Unhandled error: {exception}")
+            logger.exception(exception)
+            # Не прерываем цепочку - возвращаем True
+            return True
+
+        logger.success("✅ Dispatcher configured with error handler")
 
         # === 5. ЗАПУСК WEB СЕРВЕРА ПЕРВЫМ ===
         logger.info("🌐 Starting web server (PRIORITY #1)")
