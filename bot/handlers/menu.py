@@ -4,10 +4,16 @@ from __future__ import annotations
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
+from aiogram.exceptions import TelegramBadRequest
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.keyboards.inline import main_keyboard, agreement_keyboard
+from bot.keyboards.inline import (
+    main_keyboard, 
+    agreement_keyboard, 
+    back_to_main_keyboard,
+    documents_keyboard
+)
 from bot.services import check_agreement
 
 router = Router(name="menu")
@@ -68,9 +74,6 @@ async def documents_handler(callback: CallbackQuery) -> None:
     Args:
         callback: Callback query
     """
-    from bot.keyboards.inline import documents_keyboard
-    from aiogram.exceptions import TelegramBadRequest
-
     logger.info(f"🔘 User {callback.from_user.id} requested documents")
 
     documents_text = (
@@ -101,8 +104,6 @@ async def info_handler(callback: CallbackQuery) -> None:
     Args:
         callback: Callback query
     """
-    from bot.keyboards.inline import back_to_main_keyboard
-
     info_text = (
         "ℹ️ О боте\n\n"
         "Этот бот — твой проводник в мир дыхательных практик и Кундалини йоги.\n\n"
