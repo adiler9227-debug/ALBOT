@@ -8,6 +8,7 @@ from .subscriptions import (
     extend_subscription,
     get_days_left,
     get_expired_subscriptions,
+    get_expiring_subscriptions,
     get_subscription,
 )
 from .users import (
@@ -39,6 +40,7 @@ __all__ = [
     "get_days_left",
     "deactivate_subscription",
     "get_expired_subscriptions",
+    "get_expiring_subscriptions",
     # Users
     "add_user",
     "user_exists",
