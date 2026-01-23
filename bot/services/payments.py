@@ -63,7 +63,7 @@ async def get_payment_history(session: AsyncSession, user_id: int, limit: int = 
     query = (
         select(PaymentModel)
         .filter_by(user_id=user_id)
-        .order_by(PaymentModel.payment_date.desc())
+        .order_by(PaymentModel.created_at.desc())
         .limit(limit)
     )
     result = await session.execute(query)

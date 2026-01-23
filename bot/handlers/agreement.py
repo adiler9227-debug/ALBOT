@@ -91,7 +91,13 @@ async def agreement_agree_handler(callback: CallbackQuery, session: AsyncSession
         "Начнем с малого 👇"
     )
     
-    await callback.message.edit_text(
+    # Delete photo message and send new text message
+    try:
+        await callback.message.delete()
+    except TelegramBadRequest:
+        pass
+        
+    await callback.message.answer(
         text=welcome_text,
         reply_markup=main_keyboard(),
     )
