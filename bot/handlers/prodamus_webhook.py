@@ -89,6 +89,8 @@ async def handle_prodamus_webhook(
             logger.error("Missing order_id in webhook")
             return web.Response(status=400, text="Missing order_id")
 
+        logger.info(f"Prodamus webhook received: status={payment_status}, order_id={order_id}")
+
         # Parse order_id format: "user_{user_id}_days_{days}_{timestamp}[_promo_{code}]"
         try:
             parts = order_id.split("_")
