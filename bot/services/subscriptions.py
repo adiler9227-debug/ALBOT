@@ -88,6 +88,29 @@ async def extend_subscription(session: AsyncSession, user_id: int, days: int) ->
     return subscription
 
 
+async def get_expiring_subscriptions(session: AsyncSession, days: int) -> list[SubscriptionModel]:
+    """
+    Get subscriptions expiring in N days.
+
+    Args:
+        session: Database session
+        days: Number of days before expiration
+
+    Returns:
+        List of expiring subscriptions
+    """
+    now = datetime.datetime.utcnow()
+    target_date_start = now + datetime.timedelta(days=days)
+    target_date_end = target_date_start + datetime.timedelta(days=1)  # Within the target day
+
+    query = select(SubscriptionModel).filter(
+        SubscriptionModel.is_active == True,  # noqa: E712
+        SubscriptionModel.expires_at.between(target_date_start, target_date_end),
+    )
+    result = await session.execute(query)
+    return list(result.scalars().all())
+
+
 async def get_days_left(session: AsyncSession, user_id: int) -> int | None:
     """
     Get days left in subscription.

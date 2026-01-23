@@ -37,3 +37,18 @@ def back_to_account_keyboard() -> InlineKeyboardMarkup:
 
     keyboard = InlineKeyboardBuilder(markup=buttons)
     return keyboard.as_markup()
+
+
+def buy_subscription_keyboard() -> InlineKeyboardMarkup:
+    """
+    Create buy subscription keyboard (single button).
+
+    Returns:
+        InlineKeyboardMarkup
+    """
+    buttons = [
+        [InlineKeyboardButton(text="Продлить подписку", callback_data="subscription:buy")],
+    ]
+
+    keyboard = InlineKeyboardBuilder(markup=buttons)
+    return keyboard.as_markup()

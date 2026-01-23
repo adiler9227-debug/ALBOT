@@ -12,7 +12,13 @@ from sqlalchemy import select
 from bot.core.config import settings
 from bot.database import sessionmaker
 from bot.database.models import LessonProgressModel, SubscriptionModel
-from bot.services import deactivate_subscription, get_expired_subscriptions, remove_from_channel
+from bot.services import (
+    deactivate_subscription, 
+    get_expired_subscriptions, 
+    get_expiring_subscriptions,
+    remove_from_channel
+)
+from bot.keyboards.inline import buy_subscription_keyboard
 
 
 async def kick_expired_users(bot: Bot) -> None:
@@ -159,21 +165,8 @@ async def send_expiry_reminders(bot: Bot) -> None:
 
     try:
         async with sessionmaker() as session:
-            # Calculate time window (3 days from now)
-            now = datetime.datetime.utcnow()
-            target_date_start = now + datetime.timedelta(days=settings.payment.REMINDER_BEFORE_EXPIRY_DAYS)
-            target_date_end = target_date_start + datetime.timedelta(hours=24)
-
-            # Find active subscriptions expiring in 3 days
-            query = (
-                select(SubscriptionModel)
-                .filter(
-                    SubscriptionModel.is_active.is_(True),
-                    SubscriptionModel.expires_at.between(target_date_start, target_date_end),
-                )
-            )
-            result = await session.execute(query)
-            subscriptions = result.scalars().all()
+            # Get subscriptions expiring in 3 days
+            subscriptions = await get_expiring_subscriptions(session, days=3)
 
             if not subscriptions:
                 logger.info("No subscriptions expiring soon")
@@ -183,20 +176,15 @@ async def send_expiry_reminders(bot: Bot) -> None:
 
             for subscription in subscriptions:
                 try:
-                    days_left = settings.payment.REMINDER_BEFORE_EXPIRY_DAYS
-
                     # Send reminder
                     await bot.send_message(
                         chat_id=subscription.user_id,
                         text=(
-                            f"⏰ <b>Ваша подписка истекает через {days_left} дня!</b>\n\n"
-                            "Не прерывайте свою практику!\n\n"
-                            "💡 Продлите подписку сейчас и продолжайте развиваться:\n"
-                            "├ Новые уроки каждый день\n"
-                            "├ Прогресс в практике\n"
-                            "└ Поддержка сообщества\n\n"
-                            "🎁 Продлите сейчас и получите бонус!"
+                            "Напоминаю 🌿\n\n"
+                            "Через 3 дня заканчивается доступ в клуб.\n"
+                            "Буду рада продолжить практики вместе 🤍"
                         ),
+                        reply_markup=buy_subscription_keyboard(),
                     )
 
                     logger.info(f"Sent expiry reminder to user {subscription.user_id}")
