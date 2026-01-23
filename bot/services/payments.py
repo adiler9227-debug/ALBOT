@@ -67,7 +67,9 @@ async def get_payment_history(session: AsyncSession, user_id: int, limit: int = 
         .limit(limit)
     )
     result = await session.execute(query)
-    return list(result.scalars().all())
+    payments = list(result.scalars().all())
+    logger.info(f"🔎 Payment history for user {user_id}: found {len(payments)} records")
+    return payments
 
 
 async def get_total_revenue(session: AsyncSession) -> dict[str, int]:

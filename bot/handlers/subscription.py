@@ -83,11 +83,21 @@ async def days_left_handler(callback: CallbackQuery, session: AsyncSession) -> N
     days = await get_days_left(session, callback.from_user.id)
     
     if days is None:
-        days_text = (
-            "❌ Нет данных о подписке\n\n"
-            "Похоже, у тебя еще нет истории подписок.\n"
-            "Начни свое путешествие прямо сейчас!"
-        )
+        # Check if user has payments despite no active subscription
+        payments = await get_payment_history(session, callback.from_user.id, limit=1)
+        if payments:
+            days_text = (
+                "⚠️ <b>Подписка не найдена, но есть платежи</b>\n\n"
+                "Мы видим ваши платежи, но активная подписка не найдена.\n"
+                "Возможно, срок действия истек или произошла ошибка активации.\n"
+                "Попробуйте нажать кнопку «История оплат» или обратитесь в поддержку."
+            )
+        else:
+            days_text = (
+                "❌ Нет данных о подписке\n\n"
+                "Похоже, у тебя еще нет истории подписок.\n"
+                "Начни свое путешествие прямо сейчас!"
+            )
     elif days > 0:
         logger.info(f"User {callback.from_user.id} has {days} days")
         days_text = (
