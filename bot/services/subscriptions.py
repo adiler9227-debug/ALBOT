@@ -71,7 +71,6 @@ async def extend_subscription(session: AsyncSession, user_id: int, days: int) ->
             # Subscription expired, start from now
             subscription.expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=days)
 
-        subscription.tariff_days = days
         subscription.is_active = True
         logger.info(f"Extended subscription for user {user_id} by {days} days")
     else:
@@ -79,7 +78,6 @@ async def extend_subscription(session: AsyncSession, user_id: int, days: int) ->
         subscription = SubscriptionModel(
             user_id=user_id,
             expires_at=datetime.datetime.utcnow() + datetime.timedelta(days=days),
-            tariff_days=days,
             is_active=True,
         )
         session.add(subscription)

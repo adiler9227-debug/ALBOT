@@ -130,26 +130,41 @@ async def payment_history_handler(callback: CallbackQuery, session: AsyncSession
         return
 
     logger.info(f"Checking history for user {callback.from_user.id}")
+    
+    # 6.1 Запрос (using service which now uses created_at)
     payments = await get_payment_history(session, callback.from_user.id, limit=10)
+    
     logger.info(f"User {callback.from_user.id} has {len(payments) if payments else 0} payments")
 
-    if payments:
-        history_text = "💰 История платежей\n\n"
-        for payment in payments:
-            date_str = payment.payment_date.strftime("%d.%m.%Y %H:%M")
-            amount_str = f"{payment.amount // 100:.2f}"
-            history_text += (
-                f"• {date_str} - {amount_str} {payment.currency} ({payment.tariff_days} дней)\n"
-            )
-    else:
-        history_text = (
-            "📝 Платежей пока нет\n\n"
-            "Купи первую подписку, чтобы начать обучение!"
+    # 6.2 Отображение
+    if not payments:
+        text = "❌ У вас пока нет оплат"
+        # Using edit_text to keep UI clean, or answer if requested. 
+        # User example used message.answer, but this is a menu navigation.
+        # I'll use edit_text with back button.
+        await callback.message.edit_text(
+            text=text,
+            reply_markup=back_to_account_keyboard(),
+        )
+        return
+
+    text = "📜 История оплат:\n\n"
+    for p in payments:
+        # Safe access with getattr not strictly needed if p is PaymentModel, 
+        # but good practice if p could be dict. Here p is PaymentModel.
+        pid = p.payment_id or "N/A"
+        amt = p.amount
+        date_str = p.created_at.strftime("%d.%m.%Y")
+        
+        text += (
+            f"💳 ID: {pid}\n"
+            f"💰 {amt} ₽\n"
+            f"📅 {date_str}\n\n"
         )
 
     try:
         await callback.message.edit_text(
-            text=history_text,
+            text=text,
             reply_markup=back_to_account_keyboard(),
         )
     except TelegramBadRequest:

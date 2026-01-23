@@ -37,9 +37,8 @@ async def create_payment_record(
         user_id=user_id,
         amount=amount,
         currency=currency,
-        tariff_days=tariff_days,
-        payment_date=datetime.datetime.utcnow(),
-        provider_payment_charge_id=provider_payment_charge_id,
+        subscription_days=tariff_days,
+        payment_id=provider_payment_charge_id,
     )
     session.add(payment)
     await session.commit()

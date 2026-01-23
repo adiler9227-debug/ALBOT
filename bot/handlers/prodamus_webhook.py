@@ -55,9 +55,21 @@ async def handle_prodamus_webhook(
         aiohttp response
     """
     try:
-        # Parse form data
-        data = await request.post()
-        data_dict = {k: v for k, v in data.items()}
+        # Diagnostic: Read raw body
+        raw_body = await request.read()
+        logger.info(f"RAW BODY LEN = {len(raw_body)}")
+        logger.info(f"SECRET LEN = {len(settings.payment.PRODAMUS_SECRET_KEY)}")
+
+        # Parse form data from raw body
+        try:
+            decoded_body = raw_body.decode('utf-8')
+            # parse_qsl returns list of (key, value)
+            from urllib.parse import parse_qsl
+            data_list = parse_qsl(decoded_body, keep_blank_values=True)
+            data_dict = dict(data_list)
+        except Exception as e:
+            logger.error(f"Failed to parse raw body: {e}")
+            return web.Response(status=400, text="Bad request")
 
         logger.info(f"Received Prodamus webhook: {data_dict.get('order_id', 'unknown')}")
 

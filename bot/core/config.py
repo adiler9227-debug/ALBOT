@@ -91,7 +91,7 @@ class PaymentSettings(EnvBaseSettings):
 
     # Prodamus settings
     PRODAMUS_DOMAIN: str = "club-breathing.payform.ru"
-    PRODAMUS_SECRET_KEY: str = "6c3d207165f51af3c0e81e305ace4ce5d18a9b73c145e5fa40697f6c113a9214"
+    PRODAMUS_SECRET_KEY: str = Field(alias="PRODAMUS_SECRET_KEY")
 
     # Channel settings
     CHANNEL_ID: int = -3394467411

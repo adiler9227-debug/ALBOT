@@ -23,7 +23,6 @@ class SubscriptionModel(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), unique=True)
     expires_at: Mapped[datetime.datetime]
-    tariff_days: Mapped[int | None] = mapped_column(default=0)
     is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[created_at]
 
