@@ -132,7 +132,21 @@ async def lesson_watch_handler(
         pass
 
     # 2. Send video separately immediately after
-    if settings.payment.LESSON_VIDEO_URL:
+    if settings.payment.PRACTICE_VIDEO_FILE_ID:
+        try:
+            await callback.message.answer_video(
+                video=settings.payment.PRACTICE_VIDEO_FILE_ID,
+                caption="🎥 Вот твоё видео с дыхательной практикой",
+                reply_markup=back_to_main_keyboard(),
+            )
+        except Exception as e:
+            logger.error(f"Failed to send lesson video: {e}")
+            # Fallback to text placeholder
+            await callback.message.answer(
+                "🎥 Вот твоё видео с дыхательной практикой: \n\n[Видео будет здесь] (не удалось загрузить)",
+                reply_markup=back_to_main_keyboard(),
+            )
+    elif settings.payment.LESSON_VIDEO_URL:
         try:
             if settings.payment.LESSON_VIDEO_URL.startswith("http"):
                 video = URLInputFile(settings.payment.LESSON_VIDEO_URL)

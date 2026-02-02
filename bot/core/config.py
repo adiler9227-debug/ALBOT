@@ -131,6 +131,7 @@ class PaymentSettings(EnvBaseSettings):
 
     SAD_CAT_PHOTO_URL: str = "https://i.imgur.com/sad_cat.jpg"
     LESSON_VIDEO_URL: str | None = None  # URL or File ID of the lesson video
+    PRACTICE_VIDEO_FILE_ID: str = "BAACAgIAAxkBAAEalcJpgD-JF9p0GmWeeVhNE0PwVqpBewAC_pYAAnQN8EvVT93rZTtAhTgE"
 
 
 class AnalyticsSettings(EnvBaseSettings):
