@@ -133,6 +133,8 @@ class PaymentSettings(EnvBaseSettings):
     LESSON_VIDEO_URL: str | None = None  # URL or File ID of the lesson video
     PRACTICE_VIDEO_FILE_ID: str = "BAACAgIAAxkBAAEalcJpgD-JF9p0GmWeeVhNE0PwVqpBewAC_pYAAnQN8EvVT93rZTtAhTgE"
 
+    ADMIN_IDS: list[int] = [873527190]  # Telegram ID Алины
+
 
 class AnalyticsSettings(EnvBaseSettings):
     """Analytics settings."""

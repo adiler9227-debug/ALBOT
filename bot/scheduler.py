@@ -88,7 +88,7 @@ async def send_lesson_reminders(bot: Bot) -> None:
     try:
         async with sessionmaker() as session:
             # Calculate time window (48-72 hours ago)
-            now = datetime.datetime.utcnow()
+            now = datetime.datetime.now(datetime.timezone.utc)
             time_72h_ago = now - datetime.timedelta(seconds=settings.payment.REMINDER_48H_SECONDS + 86400)
             time_48h_ago = now - datetime.timedelta(seconds=settings.payment.REMINDER_48H_SECONDS)
 
@@ -112,41 +112,9 @@ async def send_lesson_reminders(bot: Bot) -> None:
 
             for lesson_progress in lesson_progress_list:
                 try:
-                    # Check if user has active subscription
-                    sub_query = select(SubscriptionModel).filter_by(
-                        user_id=lesson_progress.user_id,
-                        is_active=True,
-                    )
-                    sub_result = await session.execute(sub_query)
-                    has_subscription = sub_result.scalar_one_or_none() is not None
-
-                    if has_subscription:
-                        # User already purchased, mark reminder as sent
-                        lesson_progress.reminder_sent = True
-                        continue
-
-                    # Send reminder
-                    await bot.send_message(
-                        chat_id=lesson_progress.user_id,
-                        text=(
-                            "🌿 <b>Понравился урок по дыханию?</b>\n\n"
-                            "Вы смотрели бесплатный урок пару дней назад. "
-                            "Готовы продолжить свою практику?\n\n"
-                            "💎 Присоединяйтесь к полному курсу и получите:\n"
-                            "├ Ежедневные уроки\n"
-                            "├ Доступ к закрытому сообществу\n"
-                            "└ Поддержку на всём пути\n\n"
-                            "🎁 Специальное предложение только сегодня!"
-                        ),
-                    )
-
-                    lesson_progress.reminder_sent = True
-                    await session.commit()
-
-                    logger.info(f"Sent lesson reminder to user {lesson_progress.user_id}")
-
+                    await send_lesson_reminder(bot, session, lesson_progress)
                 except Exception as e:
-                    logger.error(f"Error sending lesson reminder to user {lesson_progress.user_id}: {e}")
+                    logger.error(f"Failed to send reminder to user {lesson_progress.user_id}: {e}")
 
             logger.info("Finished lesson reminders check")
 

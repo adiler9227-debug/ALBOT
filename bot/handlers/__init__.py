@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from aiogram import Router
 
-from . import agreement, bonuses, lessons, menu, payments, reply_menu, start, subscription
+from . import agreement, bonuses, lessons, menu, payments, reply_menu, start, subscription, admin
 
 
 def get_handlers_router() -> Router:
@@ -17,6 +17,7 @@ def get_handlers_router() -> Router:
     router = Router(name="main")
 
     # Order matters - more specific handlers should be registered first
+    router.include_router(admin.router)  # Admin handlers first to intercept admin commands
     router.include_router(start.router)
     router.include_router(agreement.router)
     router.include_router(menu.router)
