@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from aiogram import Router
 
-from . import agreement, bonuses, lessons, menu, payments, start, subscription
+from . import agreement, bonuses, lessons, menu, payments, reply_menu, start, subscription
 
 
 def get_handlers_router() -> Router:
@@ -20,6 +20,7 @@ def get_handlers_router() -> Router:
     router.include_router(start.router)
     router.include_router(agreement.router)
     router.include_router(menu.router)
+    router.include_router(reply_menu.router)
     router.include_router(lessons.router)
     router.include_router(payments.router)
     router.include_router(bonuses.router)
