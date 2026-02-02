@@ -52,7 +52,7 @@ async def send_reminder_task(bot: Bot, user_id: int, session: AsyncSession) -> N
                 "— восстановить силы и энергию\n\n"
                 "В нём я делюсь проверенным подходом, который помогает справиться с тревогой самостоятельно, "
                 "без долгой и дорогой работы с психологами или специалистами.\n\n"
-                "Всего 8 минут - и ты увидишь в чём настоящая причина твоей тревоги "
+                "Всего 10 минут - и ты увидишь в чём настоящая причина твоей тревоги "
                 "и как с ней работать в любой момент.\n\n"
                 "Нажми на кнопку и посмотри урок прямо сейчас ⬇️"
             )
@@ -103,73 +103,47 @@ async def lesson_watch_handler(
     asyncio.create_task(send_reminder_task(bot, user_id, session))
     logger.info(f"Started reminder task for user {user_id}")
 
-    # Send lesson text
+    # Send lesson video with caption
     lesson_text = (
-        "Я практикую уже более 6 лет и тема тревожности - одна из самых частых в моей работе. \n\n"
-        "Как и обещала, отправляю тебе урок, обязательно посмотри его: \n"
-        "✅ Если ты давно находишься в тяжелом эмоциональном состоянии \n"
-        "✅ Если сложно расслабиться даже в спокойной обстановке \n"
-        "✅ Если вся энергия уходит на тревожные переживания и крутящиеся мысли \n"
-        "✅ Если тревога стала фоном и мешает мыслить ясно \n"
-        "✅ Часто чувствуешь волнение и внутреннюю дрожь \n\n"
-        "И если ты уже пробовала разные способы: \n"
-        "- ходила к психологам, глотала таблетки (седативные, антидепрессанты), искала поддержку у близких и друзей. Но тревога не отпускает, возвращается снова и снова. \n\n"
-        "Этот урок про другой способ. Через тело и дыхание. \n\n"
-        "⏱ Всего 8 минут. \n"
+        "Я практикую уже более 6 лет и тема тревожности - одна из самых частых в моей работе.\n\n"
+        "Как и обещала, отправляю тебе урок, обязательно посмотри его:\n"
+        "✅ Если давно находишься в тяжелом эмоциональном состоянии\n"
+        "✅ Если сложно расслабиться даже в спокойной обстановке\n"
+        "✅ Если вся энергия уходит на тревожные переживания\n"
+        "✅ Если тревога стала фоном и мешает мыслить ясно\n"
+        "✅ Часто чувствуешь волнение и внутреннюю дрожь\n\n"
+        "⏱ Всего 10 минут.\n"
         "Найди тихое место, нажми 'play' и просто следуй за голосом 👇"
     )
-
-    # 1. Send text as a new message (as requested)
-    await callback.message.answer(
-        text=lesson_text,
-        reply_markup=back_to_main_keyboard(),
-    )
     
-    # Optional: Delete the previous message with the button to avoid clutter
+    # Delete the previous message with the button to avoid clutter
     try:
         await callback.message.delete()
     except Exception:
         pass
 
-    # 2. Send video separately immediately after
-    if settings.payment.PRACTICE_VIDEO_FILE_ID:
-        try:
-            await callback.message.answer_video(
-                video=settings.payment.PRACTICE_VIDEO_FILE_ID,
-                caption="🎥 Вот твоё видео с дыхательной практикой",
-                reply_markup=back_to_main_keyboard(),
-            )
-        except Exception as e:
-            logger.error(f"Failed to send lesson video: {e}")
-            # Fallback to text placeholder
-            await callback.message.answer(
-                "🎥 Вот твоё видео с дыхательной практикой: \n\n[Видео будет здесь] (не удалось загрузить)",
-                reply_markup=back_to_main_keyboard(),
-            )
-    elif settings.payment.LESSON_VIDEO_URL:
-        try:
-            if settings.payment.LESSON_VIDEO_URL.startswith("http"):
-                video = URLInputFile(settings.payment.LESSON_VIDEO_URL)
-            else:
-                # Assume it's a file_id or local path
-                video = settings.payment.LESSON_VIDEO_URL
-            
+    try:
+        # Use PRACTICE_VIDEO_FILE_ID if available, otherwise URL
+        video = settings.payment.PRACTICE_VIDEO_FILE_ID or settings.payment.LESSON_VIDEO_URL
+        
+        if video:
             await callback.message.answer_video(
                 video=video,
-                caption="🎥 Вот твоё видео с дыхательной практикой",
+                caption=lesson_text,
                 reply_markup=back_to_main_keyboard(),
             )
-        except Exception as e:
-            logger.error(f"Failed to send lesson video: {e}")
-            # Fallback to text placeholder
+        else:
+             # Fallback to text if no video
             await callback.message.answer(
-                "🎥 Вот твоё видео с дыхательной практикой: \n\n[Видео будет здесь] (не удалось загрузить)",
+                text=lesson_text + "\n\n[Видео недоступно]",
                 reply_markup=back_to_main_keyboard(),
             )
-    else:
-        # Placeholder if no video URL configured
+
+    except Exception as e:
+        logger.error(f"Failed to send lesson video: {e}")
+        # Fallback to text on error
         await callback.message.answer(
-            "🎥 Вот твоё видео с дыхательной практикой: \n\n[Видео будет здесь]",
+            text=lesson_text + "\n\n[Не удалось загрузить видео]",
             reply_markup=back_to_main_keyboard(),
         )
 

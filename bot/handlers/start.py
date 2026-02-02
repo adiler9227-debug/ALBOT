@@ -9,6 +9,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.keyboards.inline import agreement_keyboard, main_keyboard
+from bot.keyboards.reply import main_menu
 from bot.services import add_user, check_agreement, user_exists
 
 router = Router(name="start")
@@ -90,5 +91,5 @@ async def start_handler(message: Message, session: AsyncSession) -> None:
 
         await message.answer(
             text=welcome_text,
-            reply_markup=main_keyboard(),
+            reply_markup=main_menu,
         )

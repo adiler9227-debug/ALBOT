@@ -99,7 +99,7 @@ async def agreement_agree_handler(callback: CallbackQuery, session: AsyncSession
         
     await callback.message.answer(
         text=welcome_text,
-        reply_markup=main_keyboard(),
+        reply_markup=main_menu,
     )
     await callback.answer("Согласие принято")
 
