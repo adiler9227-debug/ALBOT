@@ -66,6 +66,38 @@ async def main_menu_handler(callback: CallbackQuery, session: AsyncSession) -> N
     await callback.answer()
 
 
+@router.callback_query(F.data == "back_to_menu")
+async def back_to_menu_handler(callback: CallbackQuery, session: AsyncSession) -> None:
+    """
+    Handle back to menu button.
+
+    Args:
+        callback: Callback query
+        session: Database session
+    """
+    if not callback.message:
+        return
+
+    # Delete current message (e.g. video or text)
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+
+    # Show main menu
+    menu_text = (
+        f"🏠 Главное меню\n\n"
+        f"Рад видеть тебя, {callback.from_user.first_name}! 👋\n\n"
+        "Выберите интересующий раздел ниже:"
+    )
+
+    await callback.message.answer(
+        text=menu_text,
+        reply_markup=main_keyboard(),
+    )
+    await callback.answer()
+
+
 @router.callback_query(F.data == "menu:documents")
 async def documents_handler(callback: CallbackQuery) -> None:
     """

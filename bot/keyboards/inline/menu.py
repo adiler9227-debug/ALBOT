@@ -52,7 +52,7 @@ def back_to_main_keyboard() -> InlineKeyboardMarkup:
         InlineKeyboardMarkup
     """
     buttons = [
-        [InlineKeyboardButton(text="« Назад в меню", callback_data="menu:main")],
+        [InlineKeyboardButton(text="« Назад в меню", callback_data="back_to_menu")],
     ]
 
     keyboard = InlineKeyboardBuilder(markup=buttons)
