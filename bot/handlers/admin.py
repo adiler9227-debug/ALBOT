@@ -5,6 +5,7 @@ from __future__ import annotations
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
+from loguru import logger
 
 from bot.core.config import settings
 
@@ -41,7 +42,13 @@ async def admin_panel(message: Message) -> None:
 @router.message(Command("getfileid"))
 async def get_file_id(message: Message) -> None:
     """Get file ID from reply."""
-    if not message.from_user or message.from_user.id not in settings.payment.ADMIN_IDS:
+    if not message.from_user:
+        return
+
+    logger.info(f"Admin command /getfileid from user {message.from_user.id}")
+
+    if message.from_user.id not in settings.payment.ADMIN_IDS:
+        logger.warning(f"Unauthorized access to /getfileid from {message.from_user.id}")
         return
 
     if message.reply_to_message:
