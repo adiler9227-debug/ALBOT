@@ -132,7 +132,7 @@ class PaymentSettings(EnvBaseSettings):
     SAD_CAT_PHOTO_URL: str = "https://i.imgur.com/sad_cat.jpg"
     LESSON_VIDEO_URL: str | None = None  # URL or File ID of the lesson video
     PRACTICE_VIDEO_FILE_ID: str = "BAACAgIAAxkBAAPAaYSdy4p3yquScCiDs_ZedPePdh0AAryZAAJ9bRBIqFdbLlpN54E4BA"
-    WELCOME_PHOTO_FILE_ID: str = "BQACAgIAAxkBAAEat05phKYavPypywOLwMg_A24fpV42NAACQpQAAsbeIEhAM12IqT87pDgE"
+    WELCOME_PHOTO_FILE_ID: str = "AgACAgIAAxkBAAPwaYSoiYyWB1WGWvY52-2aoTMXjwcAAu4PaxvG3iBISuzTZCHJMpYBAAMCAAN4AAM4BA"
 
     ADMIN_IDS: list[int] = [873527190, 7737327242]  # Telegram ID Алины and Developer
 

@@ -82,9 +82,10 @@ async def start_handler(message: Message, session: AsyncSession) -> None:
             "Рада видеть тебя снова! 🌿"
         )
 
-        # Send text with Reply keyboard
-        await message.answer(
-            text=welcome_text,
+        # Send Photo with Reply keyboard
+        await message.answer_photo(
+            photo=settings.payment.WELCOME_PHOTO_FILE_ID,
+            caption=welcome_text,
             reply_markup=main_menu,
         )
         
