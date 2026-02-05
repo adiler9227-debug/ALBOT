@@ -98,9 +98,8 @@ async def agreement_agree_handler(callback: CallbackQuery, session: AsyncSession
     except TelegramBadRequest:
         pass
         
-    await callback.message.answer_document(
-        document=settings.payment.WELCOME_PHOTO_FILE_ID,
-        caption=welcome_text,
+    await callback.message.answer(
+        text=welcome_text,
         reply_markup=main_menu
     )
     await callback.answer("Согласие принято")

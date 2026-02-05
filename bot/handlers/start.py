@@ -70,19 +70,11 @@ async def start_handler(message: Message, session: AsyncSession) -> None:
             "Нажмите на кнопки ниже 👇"
         )
 
-        # Use Alina's photo file_id
-        try:
-            await message.answer_document(
-                document="BQACAgIAAxkBAAEat05phKYavPypywOLwMg_A24fpV42NAACQpQAAsbeIEhAM12IqT87pDgE",
-                caption=agreement_text,
-                reply_markup=agreement_keyboard(),
-            )
-        except Exception:
-            # Fallback if photo fails
-            await message.answer(
-                text=agreement_text,
-                reply_markup=agreement_keyboard(),
-            )
+        # Show agreement screen (text only)
+        await message.answer(
+            text=agreement_text,
+            reply_markup=agreement_keyboard(),
+        )
     else:
         # Show main menu
         welcome_text = (
@@ -90,10 +82,9 @@ async def start_handler(message: Message, session: AsyncSession) -> None:
             "Рада видеть тебя снова! 🌿"
         )
 
-        # Send Document (as Photo) with Reply keyboard
-        await message.answer_document(
-            document=settings.payment.WELCOME_PHOTO_FILE_ID,
-            caption=welcome_text,
+        # Send text with Reply keyboard
+        await message.answer(
+            text=welcome_text,
             reply_markup=main_menu,
         )
         
