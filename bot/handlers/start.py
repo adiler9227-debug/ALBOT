@@ -72,8 +72,8 @@ async def start_handler(message: Message, session: AsyncSession) -> None:
 
         # Use Alina's photo file_id
         try:
-            await message.answer_photo(
-                photo="AgACAgIAAxkBAAEaQolpcZlg40EexVxrocHGW3g2R-hElgACiw1rG8H-kEviZM0QjXvNLQEAAwIAA3gAAzgE",
+            await message.answer_document(
+                document="BQACAgIAAxkBAAEat05phKYavPypywOLwMg_A24fpV42NAACQpQAAsbeIEhAM12IqT87pDgE",
                 caption=agreement_text,
                 reply_markup=agreement_keyboard(),
             )
@@ -90,9 +90,9 @@ async def start_handler(message: Message, session: AsyncSession) -> None:
             "Рада видеть тебя снова! 🌿"
         )
 
-        # Send Photo with Reply keyboard
-        await message.answer_photo(
-            photo=settings.payment.WELCOME_PHOTO_FILE_ID,
+        # Send Document (as Photo) with Reply keyboard
+        await message.answer_document(
+            document=settings.payment.WELCOME_PHOTO_FILE_ID,
             caption=welcome_text,
             reply_markup=main_menu,
         )
