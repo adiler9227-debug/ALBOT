@@ -8,10 +8,13 @@ from aiogram import F, Router
 from aiogram.types import CallbackQuery, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from loguru import logger
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.core.config import settings
+from bot.database.models import VideoReviewModel
 from bot.keyboards.inline import back_to_main_keyboard, tariffs_keyboard
-from bot.services.prodamus import generate_payment_url
+from bot.services.prodamus import generate_payment_url, apply_promocode
 
 router = Router(name="payments")
 
@@ -51,13 +54,59 @@ TARIFFS = {
 
 
 @router.callback_query(F.data == "buy_subscription")
-async def show_tariffs_handler(callback: CallbackQuery) -> None:
+async def show_tariffs_handler(callback: CallbackQuery, session: AsyncSession) -> None:
     """
     Show available tariffs.
 
     Args:
         callback: Callback query
+        session: Database session
     """
+    # Check if user has video review
+    video_query = select(VideoReviewModel).filter_by(user_id=callback.from_user.id)
+    video_result = await session.execute(video_query)
+    has_video_review = video_result.scalar_one_or_none() is not None
+
+    urls = {}
+    labels = {}
+    
+    timestamp = int(time.time())
+
+    for tariff_id, tariff in TARIFFS.items():
+        final_price = tariff['price']
+        promo_code = None
+        
+        # Apply discount if user has video review
+        if has_video_review:
+            discounted_price, promocode = await apply_promocode(
+                session=session,
+                user_id=callback.from_user.id,
+                code=settings.payment.VIDEO_REVIEW_PROMO,
+                base_amount=tariff['price']
+            )
+            if promocode and discounted_price < tariff['price']:
+                final_price = discounted_price
+                promo_code = promocode.code
+
+        # Generate order ID
+        order_id = f"user_{callback.from_user.id}_days_{tariff['days']}_{timestamp}"
+        if promo_code:
+            order_id += f"_promo_{promo_code}"
+            
+        # Generate URL
+        payment_url = generate_payment_url(
+            order_id=order_id,
+            amount=final_price,
+            products=tariff['title']
+        )
+        logger.info(f"Payment URL for tariff {tariff_id}: {payment_url}")
+        
+        urls[tariff_id] = payment_url
+        
+        # Update label if discounted
+        if promo_code:
+            labels[tariff_id] = f"{tariff['title']} - {final_price} ₽ (скидка)"
+    
     text = (
         "💎 <b>Выберите тариф:</b>\n\n"
         f"🌱 {TARIFFS['7']['title']} — {TARIFFS['7']['price']} ₽\n"
@@ -70,7 +119,7 @@ async def show_tariffs_handler(callback: CallbackQuery) -> None:
 
     await callback.message.edit_text(
         text=text,
-        reply_markup=tariffs_keyboard(),
+        reply_markup=tariffs_keyboard(urls=urls, labels=labels),
     )
     await callback.answer()
 

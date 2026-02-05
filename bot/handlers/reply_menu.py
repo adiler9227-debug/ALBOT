@@ -74,7 +74,7 @@ async def send_reminder_task(bot: Bot, user_id: int, session: AsyncSession) -> N
         logger.error(f"Error in reminder task for user {user_id}: {e}")
 
 
-@router.message(F.text == "🫁 Урок по дыханию")
+@router.message(F.text == "Урок по дыханию")
 async def lesson_button_handler(message: Message, bot: Bot, session: AsyncSession) -> None:
     """Handle lesson button."""
     if not message.from_user:
@@ -119,8 +119,8 @@ async def lesson_button_handler(message: Message, bot: Bot, session: AsyncSessio
         )
 
 
-@router.message(F.text == "🌿 Клуб дыхания")
-@router.message(F.text == "💳 Продлить подписку")
+@router.message(F.text == "Клуб дыхания")
+@router.message(F.text == "Продлить подписку")
 async def club_button_handler(message: Message, session: AsyncSession) -> None:
     """Handle club/subscribe button."""
     if not message.from_user:
@@ -145,7 +145,7 @@ async def club_button_handler(message: Message, session: AsyncSession) -> None:
     )
 
 
-@router.message(F.text == "📅 Дней осталось")
+@router.message(F.text == "Дней осталось")
 async def days_left_button_handler(message: Message, session: AsyncSession) -> None:
     """Handle days left button."""
     if not message.from_user:
@@ -182,7 +182,7 @@ async def days_left_button_handler(message: Message, session: AsyncSession) -> N
     await message.answer(text=days_text)
 
 
-@router.message(F.text == "💬 Служба заботы")
+@router.message(F.text == "Служба заботы")
 async def support_button_handler(message: Message) -> None:
     """Handle support button."""
     support_text = (

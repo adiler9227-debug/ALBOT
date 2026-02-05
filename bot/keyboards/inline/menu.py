@@ -14,12 +14,12 @@ def main_keyboard() -> InlineKeyboardMarkup:
         InlineKeyboardMarkup
     """
     buttons = [
-        [InlineKeyboardButton(text="🫁 Посмотреть урок по дыханию", callback_data="lesson:watch")],
-        [InlineKeyboardButton(text="🌿 Вступить в клуб дыхания", callback_data="lesson:join")],
-        [InlineKeyboardButton(text="👤 Мой аккаунт", callback_data="menu:account")],
-        [InlineKeyboardButton(text="📄 Документы", callback_data="menu:documents")],
-        [InlineKeyboardButton(text="🎁 Бонусы", callback_data="bonuses")],
-        [InlineKeyboardButton(text="ℹ️ Информация", callback_data="menu:info")],
+        [InlineKeyboardButton(text="Посмотреть урок по дыханию", callback_data="lesson:watch")],
+        [InlineKeyboardButton(text="Вступить в клуб дыхания", callback_data="lesson:join")],
+        [InlineKeyboardButton(text="Мой аккаунт", callback_data="menu:account")],
+        [InlineKeyboardButton(text="Документы", callback_data="menu:documents")],
+        [InlineKeyboardButton(text="Бонусы", callback_data="bonuses")],
+        [InlineKeyboardButton(text="Информация", callback_data="menu:info")],
     ]
 
     keyboard = InlineKeyboardBuilder(markup=buttons)
@@ -34,9 +34,9 @@ def documents_keyboard() -> InlineKeyboardMarkup:
         InlineKeyboardMarkup
     """
     buttons = [
-        [InlineKeyboardButton(text="📄 Оферта", callback_data="agreement:offer")],
-        [InlineKeyboardButton(text="🔒 Политика конфиденциальности", callback_data="agreement:privacy")],
-        [InlineKeyboardButton(text="📋 Согласие на обработку данных", callback_data="agreement:consent")],
+        [InlineKeyboardButton(text="Оферта", callback_data="agreement:offer")],
+        [InlineKeyboardButton(text="Политика конфиденциальности", callback_data="agreement:privacy")],
+        [InlineKeyboardButton(text="Согласие на обработку данных", callback_data="agreement:consent")],
         [InlineKeyboardButton(text="« Назад в меню", callback_data="menu:main")],
     ]
 

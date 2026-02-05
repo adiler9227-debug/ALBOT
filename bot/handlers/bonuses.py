@@ -79,15 +79,98 @@ async def show_bonuses_menu(callback: CallbackQuery, session: AsyncSession) -> N
     from aiogram.utils.keyboard import InlineKeyboardBuilder
 
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="👥 Пригласить друга", callback_data="get_referral_link"))
+    builder.row(InlineKeyboardButton(text="Пригласить друга", callback_data="get_referral_link"))
 
     if not has_video_review:
-        builder.row(InlineKeyboardButton(text="🎥 Отправить видео-отзыв", callback_data="upload_video_review"))
+        builder.row(InlineKeyboardButton(text="Отправить видео-отзыв", callback_data="bonus_video_request"))
 
     builder.row(InlineKeyboardButton(text="« Назад", callback_data="menu:main"))
 
     await callback.message.edit_text(text, reply_markup=builder.as_markup())
     await callback.answer()
+
+
+@router.callback_query(F.data == "bonus_video_request")
+async def request_video_review_handler(callback: CallbackQuery) -> None:
+    """Show video review instructions."""
+    text = (
+        "📹 <b>Как получить бонус?</b>\n\n"
+        "1. Запишите короткое видео (15-60 сек)\n"
+        "2. Расскажите, что вам нравится в клубе\n"
+        "3. Поделитесь своими результатами\n\n"
+        "После проверки мы подарим вам скидку!\n\n"
+        "Готовы отправить видео? Нажмите кнопку ниже 👇"
+    )
+    
+    from aiogram.types import InlineKeyboardButton
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Загрузить видео", callback_data="bonus_video_submit"))
+    builder.row(InlineKeyboardButton(text="« Назад", callback_data="bonuses"))
+    
+    await callback.message.edit_text(text, reply_markup=builder.as_markup())
+    await callback.answer()
+
+
+@router.callback_query(F.data == "bonus_video_submit")
+async def submit_video_review_handler(callback: CallbackQuery, state: FSMContext) -> None:
+    """Start video review submission."""
+    await state.set_state(VideoReviewStates.waiting_for_video)
+    
+    text = (
+        "🎥 <b>Отправьте ваше видео</b>\n\n"
+        "Пришлите видео-файл или кружочек в этот чат."
+    )
+    
+    from aiogram.types import InlineKeyboardButton
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="« Отмена", callback_data="bonuses"))
+    
+    await callback.message.edit_text(text, reply_markup=builder.as_markup())
+    await callback.answer()
+
+
+@router.message(VideoReviewStates.waiting_for_video, F.video | F.video_note)
+async def process_video_review(message: Message, state: FSMContext, session: AsyncSession) -> None:
+    """Process received video review."""
+    if not message.from_user:
+        return
+
+    # Save video review
+    file_id = message.video.file_id if message.video else message.video_note.file_id
+    
+    review = VideoReviewModel(
+        user_id=message.from_user.id,
+        file_id=file_id,
+        message_id=message.message_id
+    )
+    session.add(review)
+    await session.commit()
+    
+    # Get promocode
+    promo_code = settings.payment.VIDEO_REVIEW_PROMO
+    discount = settings.payment.VIDEO_REVIEW_DISCOUNT
+    
+    text = (
+        "✅ <b>Видео принято! Спасибо!</b>\n\n"
+        f"Ваш промокод на скидку {discount} ₽:\n"
+        f"<code>{promo_code}</code>\n\n"
+        "Он применится автоматически при выборе тарифа."
+    )
+    
+    await state.clear()
+    
+    from aiogram.types import InlineKeyboardButton
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Выбрать тариф", callback_data="buy_subscription"))
+    builder.row(InlineKeyboardButton(text="В меню", callback_data="menu:main"))
+    
+    await message.answer(text, reply_markup=builder.as_markup())
 
 
 @router.callback_query(F.data == "get_referral_link")
