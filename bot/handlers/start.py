@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bot.keyboards.inline import agreement_keyboard, main_keyboard
 from bot.keyboards.reply import main_menu
 from bot.services import add_user, check_agreement, user_exists
+from bot.core.config import settings
 
 router = Router(name="start")
 
@@ -89,9 +90,10 @@ async def start_handler(message: Message, session: AsyncSession) -> None:
             "Рада видеть тебя снова! 🌿"
         )
 
-        # Send Reply keyboard
-        await message.answer(
-            text=welcome_text,
+        # Send Photo with Reply keyboard
+        await message.answer_photo(
+            photo=settings.payment.WELCOME_PHOTO_FILE_ID,
+            caption=welcome_text,
             reply_markup=main_menu,
         )
         

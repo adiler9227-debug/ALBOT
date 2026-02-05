@@ -91,6 +91,8 @@ async def back_to_menu_handler(callback: CallbackQuery, session: AsyncSession) -
     if not callback.message:
         return
 
+    await callback.answer()
+
     # Delete current message (e.g. video or text)
     try:
         await callback.message.delete()
@@ -116,7 +118,7 @@ async def back_to_menu_handler(callback: CallbackQuery, session: AsyncSession) -
         text=inline_text,
         reply_markup=main_keyboard(),
     )
-    await callback.answer()
+    # await callback.answer() moved to top
 
 
 @router.callback_query(F.data == "menu:documents")
