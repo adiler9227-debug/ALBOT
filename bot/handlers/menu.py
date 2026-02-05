@@ -14,6 +14,7 @@ from bot.keyboards.inline import (
     back_to_main_keyboard,
     documents_keyboard
 )
+from bot.keyboards.reply import main_menu
 from bot.services import check_agreement
 
 router = Router(name="menu")
@@ -48,20 +49,32 @@ async def main_menu_handler(callback: CallbackQuery, session: AsyncSession) -> N
         await callback.answer("Требуется согласие")
         return
 
-    menu_text = (
+    # Text for Reply KB message
+    reply_text = f"👋 Рад видеть тебя, {callback.from_user.first_name}!"
+    
+    # Text for Inline KB message
+    inline_text = (
         f"🏠 Главное меню\n\n"
-        f"Рад видеть тебя, {callback.from_user.first_name}! 👋\n\n"
         "Выберите интересующий раздел ниже:"
     )
 
     try:
-        await callback.message.edit_text(
-            text=menu_text,
-            reply_markup=main_keyboard(),
-        )
+        # Delete old message to send new ones with both keyboards
+        await callback.message.delete()
     except Exception:
-        # Ignore errors if message not modified
         pass
+
+    # Send message with Reply keyboard
+    await callback.message.answer(
+        text=reply_text,
+        reply_markup=main_menu
+    )
+
+    # Send message with Inline keyboard
+    await callback.message.answer(
+        text=inline_text,
+        reply_markup=main_keyboard(),
+    )
     
     await callback.answer()
 
@@ -85,14 +98,22 @@ async def back_to_menu_handler(callback: CallbackQuery, session: AsyncSession) -
         pass
 
     # Show main menu
-    menu_text = (
+    reply_text = f"👋 Рад видеть тебя, {callback.from_user.first_name}!"
+    
+    inline_text = (
         f"🏠 Главное меню\n\n"
-        f"Рад видеть тебя, {callback.from_user.first_name}! 👋\n\n"
         "Выберите интересующий раздел ниже:"
     )
 
+    # Send message with Reply keyboard
     await callback.message.answer(
-        text=menu_text,
+        text=reply_text,
+        reply_markup=main_menu
+    )
+
+    # Send message with Inline keyboard
+    await callback.message.answer(
+        text=inline_text,
         reply_markup=main_keyboard(),
     )
     await callback.answer()

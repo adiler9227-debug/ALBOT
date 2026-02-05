@@ -89,7 +89,14 @@ async def start_handler(message: Message, session: AsyncSession) -> None:
             "Рада видеть тебя снова! 🌿"
         )
 
+        # Send Reply keyboard
         await message.answer(
             text=welcome_text,
             reply_markup=main_menu,
+        )
+        
+        # Send Inline keyboard
+        await message.answer(
+            text="🏠 Главное меню\n\nВыберите интересующий раздел ниже:",
+            reply_markup=main_keyboard(),
         )

@@ -52,6 +52,14 @@ TARIFFS = {
     },
 }
 
+TARIFF_LINKS = {
+    "7": "https://payform.ru/4lanBvw/",
+    "30": "https://payform.ru/4kanBwA/",
+    "90": "https://payform.ru/5canBwZ/",
+    "180": "https://payform.ru/66anBxq/",
+    "365": "https://payform.ru/6tanBxN/",
+}
+
 
 @router.callback_query(F.data == "buy_subscription")
 async def show_tariffs_handler(callback: CallbackQuery, session: AsyncSession) -> None:
@@ -94,18 +102,19 @@ async def show_tariffs_handler(callback: CallbackQuery, session: AsyncSession) -
             order_id += f"_promo_{promo_code}"
             
         # Generate URL
-        payment_url = generate_payment_url(
-            order_id=order_id,
-            amount=final_price,
-            products=tariff['title']
-        )
-        logger.info(f"Payment URL for tariff {tariff_id}: {payment_url}")
-        
+        # If we have a static link and no promo code, use it with order_id
+        if tariff_id in TARIFF_LINKS and not promo_code:
+            payment_url = f"{TARIFF_LINKS[tariff_id]}?order_id={order_id}"
+        else:
+            # Fallback to dynamic generation (required for discounts)
+            payment_url = generate_payment_url(
+                order_id=order_id,
+                amount=final_price,
+                products=tariff['title']
+            )
+            
         urls[tariff_id] = payment_url
-        
-        # Update label if discounted
-        if promo_code:
-            labels[tariff_id] = f"{tariff['title']} - {final_price} ₽ (скидка)"
+        labels[tariff_id] = f"{tariff['title']} - {final_price} ₽"
     
     text = (
         "💎 <b>Выберите тариф:</b>\n\n"

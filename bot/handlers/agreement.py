@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bot.keyboards.inline import main_keyboard, agreement_keyboard
 from bot.keyboards.reply import main_menu
 from bot.services import set_agreement, check_agreement
+from bot.core.config import settings
 
 router = Router(name="agreement")
 
@@ -97,11 +98,8 @@ async def agreement_agree_handler(callback: CallbackQuery, session: AsyncSession
     except TelegramBadRequest:
         pass
         
-    # Use Alina's photo file_id (same as in start.py)
-    photo_id = "AgACAgIAAxkBAAEaQolpcZlg40EexVxrocHGW3g2R-hElgACiw1rG8H-kEviZM0QjXvNLQEAAwIAA3gAAzgE"
-    
     await callback.message.answer_photo(
-        photo=photo_id,
+        photo=settings.payment.WELCOME_PHOTO_FILE_ID,
         caption=welcome_text,
         reply_markup=main_menu
     )

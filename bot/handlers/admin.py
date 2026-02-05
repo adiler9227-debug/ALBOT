@@ -53,11 +53,17 @@ async def get_file_id(message: Message) -> None:
 
     if message.reply_to_message:
         if message.reply_to_message.video:
-            await message.answer(f"VIDEO file_id:\n`{message.reply_to_message.video.file_id}`", parse_mode="Markdown")
+            await message.answer(f"VIDEO file_id:\n<code>{message.reply_to_message.video.file_id}</code>", parse_mode="HTML")
         elif message.reply_to_message.photo:
-            await message.answer(f"PHOTO file_id:\n`{message.reply_to_message.photo[-1].file_id}`", parse_mode="Markdown")
+            await message.answer(f"PHOTO file_id:\n<code>{message.reply_to_message.photo[-1].file_id}</code>", parse_mode="HTML")
         elif message.reply_to_message.document:
-            await message.answer(f"DOC file_id:\n`{message.reply_to_message.document.file_id}`", parse_mode="Markdown")
+            await message.answer(f"DOC file_id:\n<code>{message.reply_to_message.document.file_id}</code>", parse_mode="HTML")
+        elif message.reply_to_message.audio:
+            await message.answer(f"AUDIO file_id:\n<code>{message.reply_to_message.audio.file_id}</code>", parse_mode="HTML")
+        elif message.reply_to_message.voice:
+            await message.answer(f"VOICE file_id:\n<code>{message.reply_to_message.voice.file_id}</code>", parse_mode="HTML")
+        elif message.reply_to_message.video_note:
+            await message.answer(f"VIDEO_NOTE file_id:\n<code>{message.reply_to_message.video_note.file_id}</code>", parse_mode="HTML")
         else:
             await message.answer("В этом сообщении нет поддерживаемых медиафайлов.")
     else:
